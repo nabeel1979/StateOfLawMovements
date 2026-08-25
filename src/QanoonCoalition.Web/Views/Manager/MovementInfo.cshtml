@@ -1,0 +1,47 @@
+@using QanoonCoalition.Web.Models
+@model Movement
+@{
+    ViewData["Title"] = "بيانات الحركة";
+}
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-info-circle"></i> بيانات الحركة</h1>
+</div>
+
+<div class="card" style="max-width:600px">
+    <div class="card-body p-4">
+        <div class="row g-3">
+            <div class="col-12">
+                <div class="text-muted" style="font-size:.8rem">اسم الحركة</div>
+                <div class="fw-800 fs-4">@Model?.Name</div>
+            </div>
+            @if (!string.IsNullOrEmpty(Model?.Phone))
+            {
+                <div class="col-md-6"><div class="text-muted" style="font-size:.8rem">الهاتف</div><div>@Model.Phone</div></div>
+            }
+            @if (!string.IsNullOrEmpty(Model?.Email))
+            {
+                <div class="col-md-6"><div class="text-muted" style="font-size:.8rem">البريد</div><div>@Model.Email</div></div>
+            }
+            @if (!string.IsNullOrEmpty(Model?.Address))
+            {
+                <div class="col-12"><div class="text-muted" style="font-size:.8rem">العنوان</div><div>@Model.Address</div></div>
+            }
+            @if (!string.IsNullOrEmpty(Model?.Description))
+            {
+                <div class="col-12"><div class="text-muted" style="font-size:.8rem">الوصف</div><div>@Model.Description</div></div>
+            }
+            <div class="col-12">
+                <div class="text-muted mb-1" style="font-size:.8rem">رابط صفحة الانضمام العامة</div>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="pubLink" value="/join/@Model?.PublicToken" readonly/>
+                    <button class="btn btn-outline-primary" onclick="navigator.clipboard.writeText(window.location.origin+document.getElementById('pubLink').value);alert('تم النسخ!')">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <a href="/join/@Model?.PublicToken" target="_blank" class="btn btn-outline-success">
+                        <i class="fas fa-external-link-alt"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

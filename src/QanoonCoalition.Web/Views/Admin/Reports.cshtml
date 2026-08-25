@@ -1,0 +1,64 @@
+@using QanoonCoalition.Web.Models
+@model List<Movement>
+@{
+    ViewData["Title"] = "التقارير";
+}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-chart-bar"></i> التقارير</h1>
+</div>
+
+<div class="row g-4">
+    @foreach (var m in Model)
+    {
+        <div class="col-md-6 col-lg-4">
+            <div class="movement-card">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h6 class="mb-0 fw-700">@m.Name</h6>
+                    @if (m.IsActive)
+                    { <span class="status-approved">نشطة</span> }
+                    else
+                    { <span class="status-rejected">معطلة</span> }
+                </div>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <div class="text-center p-2 rounded" style="background:var(--primary-soft)">
+                            <div class="fw-800 fs-4" style="color:var(--primary)">@m.Members.Count</div>
+                            <div style="font-size:.75rem;color:var(--secondary)">الأعضاء</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center p-2 rounded" style="background:#fff3e0">
+                            <div class="fw-800 fs-4" style="color:#fd7e14">@m.JoinRequests.Count</div>
+                            <div style="font-size:.75rem;color:var(--secondary)">الطلبات</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center p-2 rounded" style="background:#fff8e1">
+                            <div class="fw-800 fs-5" style="color:#ffc107">
+                                @m.JoinRequests.Count(r => r.Status == RequestStatus.Pending)
+                            </div>
+                            <div style="font-size:.75rem;color:var(--secondary)">قيد المراجعة</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center p-2 rounded" style="background:#d4edda">
+                            <div class="fw-800 fs-5" style="color:#155724">
+                                @m.JoinRequests.Count(r => r.Status == RequestStatus.Approved)
+                            </div>
+                            <div style="font-size:.75rem;color:var(--secondary)">مقبولة</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3 d-flex gap-2">
+                    <a asp-controller="Admin" asp-action="Members" asp-route-movementId="@m.Id" class="btn btn-outline-primary btn-sm flex-fill">
+                        الأعضاء
+                    </a>
+                    <a asp-controller="Admin" asp-action="JoinRequests" asp-route-movementId="@m.Id" class="btn btn-outline-secondary btn-sm flex-fill">
+                        الطلبات
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+</div>

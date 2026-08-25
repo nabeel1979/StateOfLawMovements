@@ -1,0 +1,86 @@
+@using QanoonCoalition.Web.Models
+@model List<MovementConstant>
+@{
+    ViewData["Title"] = "ثوابت الحركة";
+}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-sliders-h"></i> ثوابت الحركة</h1>
+</div>
+
+<div class="row g-4">
+    <!-- Add New -->
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-plus"></i> إضافة / تعديل ثابت</div>
+            <div class="card-body p-4">
+                <form method="post" asp-action="SaveConstant">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="movementId" value="@ViewBag.MovementId"/>
+                    <div class="mb-3">
+                        <label class="form-label">المفتاح (Key) <span class="text-danger">*</span></label>
+                        <input type="text" name="key" class="form-control" required maxlength="200"
+                               placeholder="مثال: عدد_الفروع، المقر_الرئيسي"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">القيمة <span class="text-danger">*</span></label>
+                        <input type="text" name="value" class="form-control" required maxlength="2000"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">الوصف</label>
+                        <input type="text" name="description" class="form-control" maxlength="500"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">نوع البيانات</label>
+                        <select name="dataType" class="form-select">
+                            <option value="text">نص</option>
+                            <option value="number">رقم</option>
+                            <option value="date">تاريخ</option>
+                            <option value="url">رابط</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-save me-2"></i> حفظ
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Existing Constants -->
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-list"></i> الثوابت المحفوظة</div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr><th>المفتاح</th><th>القيمة</th><th>الوصف</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in Model)
+                        {
+                            <tr>
+                                <td><code>@c.Key</code></td>
+                                <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">@c.Value</td>
+                                <td style="font-size:.8rem;color:var(--secondary)">@(c.Description ?? "—")</td>
+                                <td>
+                                    <form method="post" asp-action="DeleteConstant" asp-route-id="@c.Id" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('هل تريد حذف هذا الثابت؟')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                @if (!Model.Any())
+                {
+                    <div class="empty-state"><i class="fas fa-sliders-h"></i><p>لا توجد ثوابت بعد.</p></div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

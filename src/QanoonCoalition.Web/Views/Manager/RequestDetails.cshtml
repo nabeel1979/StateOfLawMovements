@@ -1,0 +1,260 @@
+@using QanoonCoalition.Web.Models
+@model JoinRequest
+@{
+    ViewData["Title"] = "تفاصيل الطلب";
+}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-file-alt"></i> تفاصيل الطلب</h1>
+    <div class="d-flex gap-2 align-items-center">
+        <code style="font-size:.9rem">@Model.ReferenceNumber</code>
+        @switch (Model.Status)
+        {
+            case RequestStatus.Pending:  <span class="status-pending">قيد المراجعة</span>  break;
+            case RequestStatus.Approved: <span class="status-approved">مقبول</span>        break;
+            case RequestStatus.Rejected: <span class="status-rejected">مرفوض</span>        break;
+        }
+        <a asp-action="JoinRequests" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-right"></i> العودة
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left: Data Tabs -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-user"></i> بيانات مقدم الطلب</div>
+            <div class="card-body p-0">
+                <ul class="nav nav-tabs px-3 pt-2" id="reqTabs">
+                    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#rp0"><i class="fas fa-user me-1"></i> الشخصية</a></li>
+                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#rp1"><i class="fas fa-home me-1"></i> السكن</a></li>
+                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#rp2"><i class="fas fa-graduation-cap me-1"></i> العلمية</a></li>
+                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#rp3"><i class="fas fa-briefcase me-1"></i> المهنية</a></li>
+                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#rp4"><i class="fas fa-star me-1"></i> الطاقات</a></li>
+                </ul>
+                <div class="tab-content p-4">
+
+                    <!-- الشخصية -->
+                    <div class="tab-pane fade show active" id="rp0">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <div class="text-muted" style="font-size:.78rem">الاسم الكامل</div>
+                                <div class="fw-800 fs-5">@Model.FullName</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-muted" style="font-size:.78rem">رقم الهاتف</div>
+                                <div class="fw-600">@Model.Phone</div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(Model.Email))
+                            {
+                                <div class="col-md-6">
+                                    <div class="text-muted" style="font-size:.78rem">البريد الإلكتروني</div>
+                                    <div>@Model.Email</div>
+                                </div>
+                            }
+                            @if (Model.BirthDate.HasValue)
+                            {
+                                <div class="col-md-6">
+                                    <div class="text-muted" style="font-size:.78rem">تاريخ الميلاد</div>
+                                    <div>@Model.BirthDate.Value.ToString("dd/MM/yyyy")</div>
+                                </div>
+                            }
+                            @if (Model.Gender.HasValue)
+                            {
+                                <div class="col-md-6">
+                                    <div class="text-muted" style="font-size:.78rem">الجنس</div>
+                                    <div>@(Model.Gender == Gender.Male ? "ذكر" : "أنثى")</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- السكن -->
+                    <div class="tab-pane fade" id="rp1">
+                        <div class="row g-3">
+                            @if (!string.IsNullOrEmpty(Model.Province))
+                            {
+                                <div class="col-md-4"><div class="text-muted" style="font-size:.78rem">المحافظة</div><div class="fw-600">@Model.Province</div></div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.District))
+                            {
+                                <div class="col-md-4"><div class="text-muted" style="font-size:.78rem">القضاء</div><div>@Model.District</div></div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.SubDistrict))
+                            {
+                                <div class="col-md-4"><div class="text-muted" style="font-size:.78rem">الناحية</div><div>@Model.SubDistrict</div></div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.Address))
+                            {
+                                <div class="col-12"><div class="text-muted" style="font-size:.78rem">العنوان التفصيلي</div><div>@Model.Address</div></div>
+                            }
+                            @if (string.IsNullOrEmpty(Model.Province) && string.IsNullOrEmpty(Model.Address))
+                            {
+                                <div class="col-12 text-muted text-center py-3">لم يتم إدخال بيانات السكن</div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- العلمية -->
+                    <div class="tab-pane fade" id="rp2">
+                        <div class="row g-3">
+                            @if (!string.IsNullOrEmpty(Model.EducationLevel))
+                            {
+                                <div class="col-md-6"><div class="text-muted" style="font-size:.78rem">التحصيل الدراسي</div><div class="fw-600">@Model.EducationLevel</div></div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.Specialization))
+                            {
+                                <div class="col-md-6"><div class="text-muted" style="font-size:.78rem">الاختصاص</div><div>@Model.Specialization</div></div>
+                            }
+                            @if (string.IsNullOrEmpty(Model.EducationLevel) && string.IsNullOrEmpty(Model.Specialization))
+                            {
+                                <div class="col-12 text-muted text-center py-3">لم يتم إدخال البيانات العلمية</div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- المهنية + الخدمة -->
+                    <div class="tab-pane fade" id="rp3">
+                        <div class="row g-3">
+                            @if (!string.IsNullOrEmpty(Model.Occupation))
+                            {
+                                <div class="col-md-4"><div class="text-muted" style="font-size:.78rem">المهنة</div><div class="fw-600">@Model.Occupation</div></div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.JobTitle))
+                            {
+                                <div class="col-md-4"><div class="text-muted" style="font-size:.78rem">العنوان الوظيفي</div><div>@Model.JobTitle</div></div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.WorkPlace))
+                            {
+                                <div class="col-md-4"><div class="text-muted" style="font-size:.78rem">مكان العمل</div><div>@Model.WorkPlace</div></div>
+                            }
+                            @if (Model.ServiceStartDate.HasValue)
+                            {
+                                <div class="col-md-6"><div class="text-muted" style="font-size:.78rem">تاريخ المباشرة</div><div>@Model.ServiceStartDate.Value.ToString("dd/MM/yyyy")</div></div>
+                            }
+                            @if (Model.ServiceYears.HasValue)
+                            {
+                                <div class="col-md-6"><div class="text-muted" style="font-size:.78rem">سنوات الخدمة</div><div class="fw-700">@Model.ServiceYears سنة</div></div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- الطاقات -->
+                    <div class="tab-pane fade" id="rp4">
+                        <div class="row g-3">
+                            @if (!string.IsNullOrEmpty(Model.Skills))
+                            {
+                                <div class="col-md-6"><div class="text-muted" style="font-size:.78rem">المهارات</div><div>@Model.Skills</div></div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.Experiences))
+                            {
+                                <div class="col-md-6"><div class="text-muted" style="font-size:.78rem">الخبرات</div><div>@Model.Experiences</div></div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.TrainingCourses))
+                            {
+                                <div class="col-md-6"><div class="text-muted" style="font-size:.78rem">الدورات التدريبية</div><div>@Model.TrainingCourses</div></div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.Languages))
+                            {
+                                <div class="col-md-6"><div class="text-muted" style="font-size:.78rem">اللغات</div><div>@Model.Languages</div></div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.BenefitField))
+                            {
+                                <div class="col-12"><div class="text-muted" style="font-size:.78rem">مجال الاستفادة المقترح</div><div class="fw-600">@Model.BenefitField</div></div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.Notes))
+                            {
+                                <div class="col-12"><div class="text-muted" style="font-size:.78rem">ملاحظات</div><div>@Model.Notes</div></div>
+                            }
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Actions -->
+    <div class="col-lg-4">
+        @if (Model.Status == RequestStatus.Pending)
+        {
+            <div class="card mb-3">
+                <div class="card-header" style="border-right:4px solid var(--accent)">
+                    <i class="fas fa-check-circle text-success"></i> الموافقة على الطلب
+                </div>
+                <div class="card-body">
+                    <form method="post" asp-action="ApproveRequest" asp-route-id="@Model.Id">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label">مجال الاستفادة من العضو <span class="text-danger">*</span></label>
+                            <select name="benefitField" class="form-select" required>
+                                <option value="">— اختر المجال —</option>
+                                @foreach (var bf in (List<string>)(ViewBag.BenefitFields ?? new List<string>()))
+                                {
+                                    <option value="@bf" selected="@(Model.BenefitField == bf)">@bf</option>
+                                }
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100"
+                                onclick="return confirm('هل تريد قبول هذا الطلب وتحويله إلى عضو؟')">
+                            <i class="fas fa-check me-2"></i> قبول وتحويل إلى عضو
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header" style="border-right:4px solid #dc3545">
+                    <i class="fas fa-times-circle text-danger"></i> رفض الطلب
+                </div>
+                <div class="card-body">
+                    <form method="post" asp-action="RejectRequest" asp-route-id="@Model.Id">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label">سبب الرفض <span class="text-danger">*</span></label>
+                            <textarea name="reason" class="form-control" rows="3" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-danger w-100"
+                                onclick="return confirm('هل تريد رفض هذا الطلب؟')">
+                            <i class="fas fa-times me-2"></i> رفض الطلب
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card" style="border-top:4px solid @(Model.Status == RequestStatus.Approved ? "var(--accent)" : "#dc3545")">
+                <div class="card-body text-center py-4">
+                    @if (Model.Status == RequestStatus.Approved)
+                    {
+                        <i class="fas fa-check-circle text-success" style="font-size:3rem"></i>
+                        <h5 class="mt-3">تمت الموافقة</h5>
+                    }
+                    else
+                    {
+                        <i class="fas fa-times-circle text-danger" style="font-size:3rem"></i>
+                        <h5 class="mt-3">تم الرفض</h5>
+                        @if (!string.IsNullOrEmpty(Model.RejectionReason))
+                        {
+                            <div class="alert alert-danger mt-2 text-start" style="font-size:.85rem">@Model.RejectionReason</div>
+                        }
+                    }
+                    <p class="text-muted" style="font-size:.82rem">
+                        بواسطة: @(Model.ReviewedByUser?.FullName ?? "—")<br/>
+                        @(Model.ReviewedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm"))
+                    </p>
+                </div>
+            </div>
+        }
+
+        <!-- Request Meta -->
+        <div class="card mt-3">
+            <div class="card-body" style="font-size:.82rem">
+                <div class="mb-2"><span class="text-muted">الرقم المرجعي: </span><code>@Model.ReferenceNumber</code></div>
+                <div><span class="text-muted">تاريخ الطلب: </span>@Model.SubmittedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+            </div>
+        </div>
+    </div>
+</div>

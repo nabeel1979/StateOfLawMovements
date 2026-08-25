@@ -1,0 +1,49 @@
+@{
+    ViewData["Title"] = "تم إرسال الطلب";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>تم إرسال الطلب</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/app.css"/>
+</head>
+<body style="background:linear-gradient(160deg,#f0faf4,#e8f5ee);min-height:100vh;display:flex;align-items:center">
+<div class="container">
+    <div class="confirmation-card">
+        <div class="text-center mb-3">
+            <img src="/images/logo.jpg" alt="ائتلاف دولة القانون"
+                 style="width:80px;height:80px;object-fit:cover;border-radius:50%;
+                        border:3px solid var(--primary);box-shadow:0 4px 15px rgba(26,107,58,.2)"/>
+        </div>
+        <div class="confirmation-icon">
+            <i class="fas fa-check"></i>
+        </div>
+        <h2 class="fw-800 mb-2" style="color:var(--primary-dark)">تم إرسال طلبك بنجاح!</h2>
+        <p class="text-muted">
+            تم استلام طلب انضمامك إلى <strong>@ViewBag.MovementName</strong>.
+            سيقوم مسؤول الحركة بمراجعة طلبك والتواصل معك قريباً.
+        </p>
+
+        <div class="reference-box">
+            @ViewBag.Reference
+        </div>
+
+        <p class="text-muted" style="font-size:.85rem">
+            <i class="fas fa-info-circle me-1"></i>
+            احتفظ بهذا الرقم المرجعي لمتابعة حالة طلبك
+        </p>
+
+        <div class="alert alert-info mt-3" style="font-size:.85rem">
+            <i class="fas fa-clock me-2"></i>
+            سيتم مراجعة طلبك في أقرب وقت ممكن من قبل مسؤول الحركة.
+        </div>
+    </div>
+</div>
+</body>
+</html>

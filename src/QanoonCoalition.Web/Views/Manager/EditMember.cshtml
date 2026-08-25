@@ -1,0 +1,228 @@
+@using QanoonCoalition.Web.Models
+@model Member
+@{
+    ViewData["Title"] = "تعديل عضو";
+}
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-user-edit"></i> تعديل: @Model.FullName</h1>
+    <div class="d-flex gap-2">
+        <span class="serial-badge fs-6 align-self-center">@Model.SerialNumber</span>
+        <a asp-action="Members" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> العودة</a>
+    </div>
+</div>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        @foreach (var e in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        { <div>@e.ErrorMessage</div> }
+    </div>
+}
+
+<form method="post" asp-action="EditMember" asp-route-id="@Model.Id" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+
+    <ul class="nav nav-tabs mb-0" id="editTabs">
+        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#ep-personal"><i class="fas fa-user me-1"></i> الشخصية</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#ep-residence"><i class="fas fa-home me-1"></i> السكن</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#ep-education"><i class="fas fa-graduation-cap me-1"></i> العلمية</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#ep-career"><i class="fas fa-briefcase me-1"></i> المهنية</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#ep-service"><i class="fas fa-clock me-1"></i> الخدمة</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#ep-skills"><i class="fas fa-star me-1"></i> الطاقات</a></li>
+    </ul>
+
+    <div class="tab-content card border-top-0 rounded-0 rounded-bottom p-4 mb-3" style="border:1px solid #dee2e6">
+
+        <div class="tab-pane fade show active" id="ep-personal">
+            <div class="row g-3 mt-1">
+                <!-- صورة العضو -->
+                <div class="col-12">
+                    <div class="d-flex align-items-center gap-4">
+                        <div id="photoPreview" style="width:100px;height:120px;border:2px solid #c8e6d5;
+                             border-radius:8px;overflow:hidden;flex-shrink:0;background:#f9fdf9">
+                            @if (!string.IsNullOrEmpty(Model.PhotoPath))
+                            {
+                                <img src="@Model.PhotoPath" style="width:100%;height:100%;object-fit:cover"/>
+                            }
+                            else
+                            {
+                                <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center">
+                                    <i class="fas fa-camera" style="font-size:1.8rem;color:#ccc"></i>
+                                </div>
+                            }
+                        </div>
+                        <div class="flex-grow-1">
+                            <label class="form-label mb-1">تغيير الصورة <small class="text-muted">(JPG/PNG/WEBP، حد أقصى 3MB)</small></label>
+                            <input type="file" name="photo" class="form-control mb-2"
+                                   accept=".jpg,.jpeg,.png,.webp" onchange="previewPhoto(this)"/>
+                            @if (!string.IsNullOrEmpty(Model.PhotoPath))
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="removePhoto" value="true" id="removePhotoCheck"/>
+                                    <label class="form-check-label text-danger" for="removePhotoCheck">
+                                        <i class="fas fa-trash me-1"></i> حذف الصورة الحالية
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">الاسم الكامل <span class="text-danger">*</span></label>
+                    <input type="text" name="FullName" class="form-control" value="@Model.FullName" required maxlength="200"/>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">رقم الهاتف <span class="text-danger">*</span></label>
+                    <input type="tel" name="Phone" class="form-control" value="@Model.Phone" required maxlength="20"/>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">البريد الإلكتروني</label>
+                    <input type="email" name="Email" class="form-control" value="@Model.Email" maxlength="200"/>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">تاريخ الميلاد</label>
+                    <input type="date" name="BirthDate" class="form-control" value="@(Model.BirthDate?.ToString("yyyy-MM-dd"))"/>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الجنس</label>
+                    <select name="Gender" class="form-select">
+                        <option value="">—</option>
+                        <option value="1" selected="@(Model.Gender == Gender.Male)">ذكر</option>
+                        <option value="2" selected="@(Model.Gender == Gender.Female)">أنثى</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="ep-residence">
+            <div class="row g-3 mt-1">
+                <div class="col-md-4">
+                    <label class="form-label">المحافظة</label>
+                    <select name="Province" class="form-select">
+                        <option value="">— اختر —</option>
+                        @foreach (var p in new[]{"بغداد","البصرة","نينوى","أربيل","النجف","كربلاء","الأنبار","ديالى","صلاح الدين","واسط","ميسان","ذي قار","المثنى","القادسية","بابل","كركوك","السليمانية","دهوك"})
+                        {
+                            <option value="@p" selected="@(Model.Province == p)">@p</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">القضاء</label>
+                    <input type="text" name="District" class="form-control" value="@Model.District" maxlength="100"/>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">الناحية</label>
+                    <input type="text" name="SubDistrict" class="form-control" value="@Model.SubDistrict" maxlength="100"/>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">العنوان التفصيلي</label>
+                    <textarea name="Address" class="form-control" rows="2" maxlength="500">@Model.Address</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="ep-education">
+            <div class="row g-3 mt-1">
+                <div class="col-md-6">
+                    <label class="form-label">التحصيل الدراسي</label>
+                    <select name="EducationLevel" class="form-select">
+                        <option value="">— اختر —</option>
+                        @foreach (var lvl in (List<string>)(ViewBag.EducationLevels ?? new List<string>()))
+                        {
+                            <option value="@lvl" selected="@(Model.EducationLevel == lvl)">@lvl</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">الاختصاص</label>
+                    <input type="text" name="Specialization" class="form-control" value="@Model.Specialization" maxlength="200"/>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="ep-career">
+            <div class="row g-3 mt-1">
+                <div class="col-md-4">
+                    <label class="form-label">المهنة</label>
+                    <input type="text" name="Occupation" class="form-control" value="@Model.Occupation" maxlength="200"/>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">العنوان الوظيفي</label>
+                    <input type="text" name="JobTitle" class="form-control" value="@Model.JobTitle" maxlength="200"/>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">مكان العمل</label>
+                    <input type="text" name="WorkPlace" class="form-control" value="@Model.WorkPlace" maxlength="200"/>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="ep-service">
+            <div class="row g-3 mt-1">
+                <div class="col-md-6">
+                    <label class="form-label">تاريخ المباشرة بالوظيفة</label>
+                    <input type="date" name="ServiceStartDate" class="form-control" value="@(Model.ServiceStartDate?.ToString("yyyy-MM-dd"))"/>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">سنوات الخدمة</label>
+                    <input type="number" name="ServiceYears" class="form-control" value="@Model.ServiceYears" min="0" max="60"/>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="ep-skills">
+            <div class="row g-3 mt-1">
+                <div class="col-md-6">
+                    <label class="form-label">المهارات</label>
+                    <textarea name="Skills" class="form-control" rows="3" maxlength="500">@Model.Skills</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">الخبرات</label>
+                    <textarea name="Experiences" class="form-control" rows="3" maxlength="500">@Model.Experiences</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">الدورات التدريبية</label>
+                    <textarea name="TrainingCourses" class="form-control" rows="3" maxlength="500">@Model.TrainingCourses</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">اللغات</label>
+                    <input type="text" name="Languages" class="form-control" value="@Model.Languages" maxlength="200"/>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">مجال الاستفادة من العضو</label>
+                    <select name="BenefitField" class="form-select">
+                        <option value="">— اختر المجال —</option>
+                        @foreach (var bf in (List<string>)(ViewBag.BenefitFields ?? new List<string>()))
+                        {
+                            <option value="@bf" selected="@(Model.BenefitField == bf)">@bf</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">ملاحظات</label>
+                    <textarea name="Notes" class="form-control" rows="2" maxlength="500">@Model.Notes</textarea>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary px-5">
+            <i class="fas fa-save me-2"></i> حفظ التعديلات
+        </button>
+        <a asp-action="Members" class="btn btn-outline-secondary">إلغاء</a>
+    </div>
+</form>
+<script>
+function previewPhoto(input) {
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('photoPreview').innerHTML =
+                '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover"/>';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>

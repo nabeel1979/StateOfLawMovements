@@ -1,0 +1,55 @@
+@{
+    ViewData["Title"] = "إنشاء حركة جديدة";
+}
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-plus-circle"></i> إنشاء حركة جديدة</h1>
+    <a asp-action="Movements" class="btn btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i> العودة</a>
+</div>
+
+<div class="card" style="max-width:760px">
+    <div class="card-header"><i class="fas fa-sitemap"></i> بيانات الحركة</div>
+    <div class="card-body p-4">
+        <form method="post" asp-action="CreateMovement">
+            @Html.AntiForgeryToken()
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger">
+                    @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    { <div><i class="fas fa-exclamation-circle me-1"></i>@err.ErrorMessage</div> }
+                </div>
+            }
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label">اسم الحركة <span class="text-danger">*</span></label>
+                    <input type="text" name="name" class="form-control" placeholder="اسم الحركة" required maxlength="200"/>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">رقم الهاتف</label>
+                    <input type="tel" name="phone" class="form-control" placeholder="07xx xxx xxxx" maxlength="20"/>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">البريد الإلكتروني</label>
+                    <input type="email" name="email" class="form-control" placeholder="info@movement.iq" maxlength="200"/>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">الموقع الإلكتروني</label>
+                    <input type="url" name="website" class="form-control" placeholder="https://..." maxlength="200"/>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">العنوان</label>
+                    <input type="text" name="address" class="form-control" placeholder="المحافظة / الحي" maxlength="500"/>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">نبذة عن الحركة</label>
+                    <textarea name="description" class="form-control" rows="4" placeholder="وصف مختصر للحركة..." maxlength="2000"></textarea>
+                </div>
+                <div class="col-12 mt-2">
+                    <button type="submit" class="btn btn-primary px-5">
+                        <i class="fas fa-save me-2"></i> إنشاء الحركة
+                    </button>
+                    <a asp-action="Movements" class="btn btn-outline-secondary ms-2">إلغاء</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

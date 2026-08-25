@@ -1,0 +1,191 @@
+@model List<QanoonCoalition.Web.Models.SystemConstant>
+@using QanoonCoalition.Web.Models
+@{
+    ViewData["Title"] = "ثوابت النظام";
+    var currentCat = ViewBag.Category as string;
+    var labels = ViewBag.CategoryLabels as Dictionary<string, string>
+                 ?? new Dictionary<string, string>();
+
+    string TabClass(string cat) => currentCat == cat ? "active" : "";
+    string BadgeColor(string cat) => cat switch
+    {
+        SysConst.EducationLevel => "success",
+        SysConst.BenefitField   => "info",
+        SysConst.ManagerTitle   => "warning",
+        _ => "secondary"
+    };
+}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-sliders-h me-2"></i>ثوابت النظام</h1>
+    <p class="text-muted mb-0">إدارة قوائم الاختيار المستخدمة في النظام</p>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link @(string.IsNullOrEmpty(currentCat) ? "active" : "")"
+           href="@Url.Action("SystemConstants")">
+            <i class="fas fa-list me-1"></i> الكل
+        </a>
+    </li>
+    @foreach (var kv in labels)
+    {
+        <li class="nav-item">
+            <a class="nav-link @TabClass(kv.Key)" href="@Url.Action("SystemConstants", new { category = kv.Key })">
+                <span class="badge bg-@BadgeColor(kv.Key) me-1">@Model.Count(x => x.Category == kv.Key && (string.IsNullOrEmpty(currentCat)))</span>
+                @kv.Value
+            </a>
+        </li>
+    }
+</ul>
+
+@foreach (var cat in (string.IsNullOrEmpty(currentCat) ? labels.Keys.ToList() : new List<string> { currentCat }))
+{
+    var items = Model.Where(x => x.Category == cat).ToList();
+    var label = labels.GetValueOrDefault(cat, cat);
+
+    <div class="card mb-4">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h6 class="mb-0 fw-700">
+                <span class="badge bg-@BadgeColor(cat) me-2">@items.Count</span>
+                @label
+            </h6>
+            <!-- Add new value -->
+            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addModal_@cat">
+                <i class="fas fa-plus me-1"></i> إضافة قيمة
+            </button>
+        </div>
+        <div class="card-body p-0">
+            @if (!items.Any())
+            {
+                <p class="text-muted text-center py-4">لا توجد قيم</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:50px">#</th>
+                                <th>القيمة</th>
+                                <th style="width:100px" class="text-center">الحالة</th>
+                                <th style="width:120px" class="text-center">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in items.OrderBy(x => x.DisplayOrder))
+                            {
+                                <tr>
+                                    <td class="text-muted">@item.DisplayOrder</td>
+                                    <td class="fw-600">@item.Value</td>
+                                    <td class="text-center">
+                                        @if (item.IsActive)
+                                        {
+                                            <span class="badge bg-success-subtle text-success">نشط</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary">معطل</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-primary me-1"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editModal_@item.Id"
+                                                title="تعديل">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <form method="post" asp-action="DeleteConstant" style="display:inline"
+                                              onsubmit="return confirm('هل تريد حذف هذه القيمة؟')">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <button class="btn btn-sm btn-outline-danger" title="حذف">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+
+                                <!-- Edit Modal -->
+                                <div class="modal fade" id="editModal_@item.Id" tabindex="-1">
+                                    <div class="modal-dialog modal-sm">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h6 class="modal-title">تعديل قيمة</h6>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <form method="post" asp-action="EditConstant">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@item.Id" />
+                                                <div class="modal-body">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">القيمة <span class="text-danger">*</span></label>
+                                                        <input type="text" name="value" class="form-control"
+                                                               value="@item.Value" required maxlength="200" />
+                                                    </div>
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox"
+                                                               name="isActive" value="true"
+                                                               checked="@item.IsActive" id="active_@item.Id" />
+                                                        <label class="form-check-label" for="active_@item.Id">نشط</label>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">إلغاء</button>
+                                                    <button type="submit" class="btn btn-primary btn-sm">حفظ</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Add Modal -->
+    <div class="modal fade" id="addModal_@cat" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><i class="fas fa-plus me-1"></i>إضافة إلى: @label</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" asp-action="CreateConstant">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="category" value="@cat" />
+                    <div class="modal-body">
+                        <label class="form-label">القيمة <span class="text-danger">*</span></label>
+                        <input type="text" name="value" class="form-control" required maxlength="200"
+                               placeholder="أدخل القيمة الجديدة..." />
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-success btn-sm">
+                            <i class="fas fa-plus me-1"></i> إضافة
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}

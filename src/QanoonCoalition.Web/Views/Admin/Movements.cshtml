@@ -1,0 +1,82 @@
+@using QanoonCoalition.Web.Models
+@model List<Movement>
+@{
+    ViewData["Title"] = "الحركات";
+}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-sitemap"></i> الحركات</h1>
+    <a asp-action="CreateMovement" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i> إنشاء حركة جديدة
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-list"></i> قائمة الحركات (@Model.Count)</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>اسم الحركة</th>
+                    <th>الهاتف</th>
+                    <th>البريد</th>
+                    <th>الحالة</th>
+                    <th>تاريخ الإنشاء</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var (m, i) in Model.Select((m, i) => (m, i + 1)))
+                {
+                    <tr>
+                        <td class="text-muted">@i</td>
+                        <td class="fw-700">@m.Name</td>
+                        <td>@(m.Phone ?? "—")</td>
+                        <td>@(m.Email ?? "—")</td>
+                        <td>
+                            @if (m.IsActive)
+                            { <span class="status-approved">نشطة</span> }
+                            else
+                            { <span class="status-rejected">معطلة</span> }
+                        </td>
+                        <td style="font-size:.82rem">@m.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a asp-action="MovementDetails" asp-route-id="@m.Id" class="btn btn-outline-primary btn-sm" title="التفاصيل">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a asp-action="EditMovement" asp-route-id="@m.Id" class="btn btn-outline-secondary btn-sm" title="تعديل">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a asp-action="MovementManagers" asp-route-movementId="@m.Id" class="btn btn-outline-info btn-sm" title="المسؤولون">
+                                    <i class="fas fa-user-shield"></i>
+                                </a>
+                                <form method="post" asp-action="ToggleMovement" asp-route-id="@m.Id" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm @(m.IsActive ? "btn-outline-warning" : "btn-outline-success")" 
+                                            title="@(m.IsActive ? "تعطيل" : "تفعيل")"
+                                            onclick="return confirm('@(m.IsActive ? "هل تريد تعطيل الحركة؟" : "هل تريد تفعيل الحركة؟")')">
+                                        <i class="fas @(m.IsActive ? "fa-ban" : "fa-check")"></i>
+                                    </button>
+                                </form>
+                                <a href="/join/@m.PublicToken" target="_blank" class="btn btn-outline-success btn-sm" title="رابط الانضمام">
+                                    <i class="fas fa-link"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (!Model.Any())
+        {
+            <div class="empty-state">
+                <i class="fas fa-sitemap"></i>
+                <p>لا توجد حركات بعد. قم بإنشاء أول حركة.</p>
+            </div>
+        }
+    </div>
+</div>

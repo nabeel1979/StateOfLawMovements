@@ -1,0 +1,76 @@
+@using QanoonCoalition.Web.Models
+@model List<User>
+@{
+    ViewData["Title"] = "مسؤولو الحركة";
+    var movement = (Movement)ViewBag.Movement;
+}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-user-shield"></i> مسؤولو حركة: @movement.Name</h1>
+    <div class="d-flex gap-2">
+        <a asp-action="CreateManager" asp-route-movementId="@movement.Id" class="btn btn-primary">
+            <i class="fas fa-user-plus me-1"></i> إضافة مسؤول
+        </a>
+        <a asp-action="MovementDetails" asp-route-id="@movement.Id" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-right me-1"></i> العودة
+        </a>
+    </div>
+</div>
+
+<div class="card" style="max-width:700px">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>الاسم</th>
+                    <th>الصفة</th>
+                    <th>البريد الإلكتروني</th>
+                    <th>الحالة</th>
+                    <th>آخر دخول</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in Model)
+                {
+                    <tr>
+                        <td class="fw-600">@u.FullName</td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(u.Title))
+                            {
+                                <span class="badge"
+                                      style="background:@(u.Title == "رئيس" ? "#1a6b3a" : u.Title == "نائب رئيس" ? "#2d9e5f" : "#6c757d")">
+                                    @u.Title
+                                </span>
+                            }
+                            else { <span class="text-muted">—</span> }
+                        </td>
+                        <td>@u.Email</td>
+                        <td>
+                            @if (u.IsActive)
+                            { <span class="status-approved">نشط</span> }
+                            else
+                            { <span class="status-rejected">معطل</span> }
+                        </td>
+                        <td style="font-size:.82rem">
+                            @(u.LastLoginAt.HasValue ? u.LastLoginAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "لم يسجل دخول")
+                        </td>
+                        <td>
+                            <a asp-action="EditManager" asp-route-id="@u.Id"
+                               class="btn btn-sm btn-outline-primary" title="تعديل">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (!Model.Any())
+        {
+            <div class="empty-state">
+                <i class="fas fa-user-slash"></i>
+                <p>لم يُضاف أي مسؤول لهذه الحركة بعد.</p>
+            </div>
+        }
+    </div>
+</div>

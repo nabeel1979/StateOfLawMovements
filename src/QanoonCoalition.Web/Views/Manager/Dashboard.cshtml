@@ -1,0 +1,136 @@
+@using QanoonCoalition.Web.Models
+@model Movement
+@{
+    ViewData["Title"] = "لوحة تحكم المسؤول";
+}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-home"></i> @Model.Name</h1>
+    <a href="/join/@Model.PublicToken" target="_blank" class="btn btn-outline-success">
+        <i class="fas fa-link me-1"></i> رابط الانضمام
+    </a>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card blue">
+        <div class="stat-icon"><i class="fas fa-users"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.TotalMembers</div>
+            <div class="stat-label">الأعضاء المعتمدون</div>
+        </div>
+    </div>
+    <div class="stat-card red">
+        <div class="stat-icon"><i class="fas fa-clock"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.PendingRequests</div>
+            <div class="stat-label">طلبات قيد المراجعة</div>
+        </div>
+    </div>
+    <div class="stat-card green">
+        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.ApprovedRequests</div>
+            <div class="stat-label">طلبات مقبولة</div>
+        </div>
+    </div>
+    <div class="stat-card orange">
+        <div class="stat-icon"><i class="fas fa-times-circle"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.RejectedRequests</div>
+            <div class="stat-label">طلبات مرفوضة</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-inbox"></i> أحدث الطلبات المعلقة</span>
+                <a asp-action="JoinRequests" class="btn btn-outline-primary btn-sm">عرض الكل</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead><tr><th>الاسم</th><th>الهاتف</th><th>التاريخ</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var r in (List<JoinRequest>)ViewBag.RecentRequests)
+                        {
+                            <tr>
+                                <td class="fw-600">@r.FullName</td>
+                                <td>@r.Phone</td>
+                                <td style="font-size:.8rem">@r.SubmittedAt.ToLocalTime().ToString("dd/MM HH:mm")</td>
+                                <td>
+                                    <a asp-action="RequestDetails" asp-route-id="@r.Id" class="btn btn-sm btn-outline-primary">
+                                        مراجعة
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                        @if (!((List<JoinRequest>)ViewBag.RecentRequests).Any())
+                        {
+                            <tr><td colspan="4" class="text-center text-muted py-4">لا توجد طلبات معلقة</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-info-circle"></i> بيانات الحركة</div>
+            <div class="card-body">
+                @if (!string.IsNullOrEmpty(Model.Phone))
+                {
+                    <div class="mb-2"><span class="text-muted">الهاتف: </span><span class="fw-600">@Model.Phone</span></div>
+                }
+                @if (!string.IsNullOrEmpty(Model.Email))
+                {
+                    <div class="mb-2"><span class="text-muted">البريد: </span><span class="fw-600">@Model.Email</span></div>
+                }
+                @if (!string.IsNullOrEmpty(Model.Address))
+                {
+                    <div class="mb-2"><span class="text-muted">العنوان: </span><span class="fw-600">@Model.Address</span></div>
+                }
+                <hr class="my-3"/>
+                <div class="mb-2 text-muted" style="font-size:.82rem">رابط صفحة الانضمام:</div>
+                <div class="input-group">
+                    <input type="text" class="form-control form-control-sm" id="joinLinkMgr" 
+                           value="/join/@Model.PublicToken" readonly/>
+                    <button class="btn btn-outline-primary btn-sm" onclick="copyJoinLink()">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header"><i class="fas fa-bolt"></i> إجراءات سريعة</div>
+            <div class="card-body d-flex flex-column gap-2">
+                <a asp-action="AddMember" class="btn btn-primary">
+                    <i class="fas fa-user-plus me-2"></i> إضافة عضو يدوياً
+                </a>
+                <a asp-action="JoinRequests" asp-route-status="1" class="btn btn-outline-warning">
+                    <i class="fas fa-inbox me-2"></i> مراجعة الطلبات المعلقة
+                    @if ((int)ViewBag.PendingRequests > 0)
+                    {
+                        <span class="badge bg-warning text-dark ms-1">@ViewBag.PendingRequests</span>
+                    }
+                </a>
+                <a asp-action="Members" class="btn btn-outline-primary">
+                    <i class="fas fa-users me-2"></i> عرض الأعضاء
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function copyJoinLink() {
+    const txt = document.getElementById('joinLinkMgr').value;
+    navigator.clipboard.writeText(window.location.origin + txt);
+    alert('تم نسخ الرابط!');
+}
+</script>
+}

@@ -1,0 +1,133 @@
+@using QanoonCoalition.Web.Models
+@model List<Movement>
+@{
+    ViewData["Title"] = "لوحة تحكم المدير";
+}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-chart-line"></i> لوحة التحكم</h1>
+    <a asp-action="CreateMovement" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i> إنشاء حركة جديدة
+    </a>
+</div>
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card green">
+        <div class="stat-icon"><i class="fas fa-sitemap"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.TotalMovements</div>
+            <div class="stat-label">إجمالي الحركات</div>
+        </div>
+    </div>
+    <div class="stat-card blue">
+        <div class="stat-icon"><i class="fas fa-users"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.TotalMembers</div>
+            <div class="stat-label">الأعضاء المعتمدون</div>
+        </div>
+    </div>
+    <div class="stat-card orange">
+        <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.TotalRequests</div>
+            <div class="stat-label">إجمالي الطلبات</div>
+        </div>
+    </div>
+    <div class="stat-card red">
+        <div class="stat-icon"><i class="fas fa-clock"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.PendingRequests</div>
+            <div class="stat-label">طلبات قيد المراجعة</div>
+        </div>
+    </div>
+    <div class="stat-card teal">
+        <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.ApprovedMembers</div>
+            <div class="stat-label">الأعضاء المعتمدون</div>
+        </div>
+    </div>
+    <div class="stat-card purple">
+        <div class="stat-icon"><i class="fas fa-user-shield"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.ActiveManagers</div>
+            <div class="stat-label">مسؤولو الحركات</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Movements Table -->
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-sitemap"></i> الحركات</span>
+                <a asp-action="Movements" class="btn btn-outline-primary btn-sm">عرض الكل</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>اسم الحركة</th>
+                            <th>الأعضاء</th>
+                            <th>الحالة</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in (List<Movement>)ViewBag.Movements)
+                        {
+                            <tr>
+                                <td class="fw-600">@m.Name</td>
+                                <td>@m.Members.Count</td>
+                                <td>
+                                    @if (m.IsActive)
+                                    {
+                                        <span class="status-approved">نشطة</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-rejected">معطلة</span>
+                                    }
+                                </td>
+                                <td>
+                                    <a asp-action="MovementDetails" asp-route-id="@m.Id" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Audit Logs -->
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-history"></i> آخر العمليات</span>
+                <a asp-action="AuditLogs" class="btn btn-outline-primary btn-sm">عرض الكل</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead><tr><th>العملية</th><th>المستخدم</th><th>التاريخ</th></tr></thead>
+                    <tbody>
+                        @foreach (var log in (List<AuditLog>)ViewBag.RecentLogs)
+                        {
+                            <tr>
+                                <td style="font-size:.8rem">@log.Description</td>
+                                <td style="font-size:.8rem">@(log.User?.FullName ?? "—")</td>
+                                <td style="font-size:.75rem; color:var(--secondary)">
+                                    @log.CreatedAt.ToLocalTime().ToString("dd/MM HH:mm")
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

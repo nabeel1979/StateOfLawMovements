@@ -1,0 +1,544 @@
+@using QanoonCoalition.Web.Models
+@model JoinRequest
+@{
+    ViewData["Title"] = "طلب الانضمام";
+    Layout = null;
+    var movement = (Movement)ViewBag.Movement;
+
+    // تحديد التاب الذي يحتوي خطأ لفتحه تلقائياً
+    int errorTabIndex = 0;
+    if (!ViewData.ModelState.IsValid)
+    {
+        var errKeys = ViewData.ModelState
+            .Where(k => k.Value != null && k.Value.Errors.Any())
+            .Select(k => k.Key)
+            .ToHashSet();
+
+        if (errKeys.Any(k => k == "Province" || k == "District" || k == "SubDistrict" || k == "Address"))
+            errorTabIndex = 1;
+        else if (errKeys.Any(k => k == "EducationLevel" || k == "Specialization"))
+            errorTabIndex = 2;
+        else if (errKeys.Any(k => k == "Occupation" || k == "JobTitle" || k == "WorkPlace"))
+            errorTabIndex = 3;
+        else if (errKeys.Any(k => k == "ServiceStartDate" || k == "ServiceYears"))
+            errorTabIndex = 4;
+        else if (errKeys.Any(k => k == "Skills" || k == "Experiences" || k == "TrainingCourses" || k == "Languages"))
+            errorTabIndex = 5;
+        // else stays 0 (personal tab)
+    }
+}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>طلب الانضمام - @movement.Name</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/app.css"/>
+    <style>
+        .wizard-tabs { display:flex; gap:0; border-radius:12px; overflow:hidden; margin-bottom:28px; background:#e8f5ee; }
+        .wizard-tab  {
+            flex:1; padding:12px 8px; text-align:center; cursor:pointer;
+            font-size:.78rem; font-weight:600; color:#555; border:none; background:transparent;
+            transition:all .2s; display:flex; flex-direction:column; align-items:center; gap:4px;
+        }
+        .wizard-tab .tab-icon { font-size:1.2rem; }
+        .wizard-tab.active { background:var(--primary); color:#fff; }
+        .wizard-tab.done   { background:var(--accent); color:#fff; }
+        .wizard-tab:hover:not(.active) { background:rgba(26,107,58,.15); }
+
+        .wizard-panel { display:none; animation: fadeIn .3s ease; }
+        .wizard-panel.active { display:block; }
+        @@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+        .step-nav { display:flex; justify-content:space-between; align-items:center; margin-top:24px; padding-top:20px; border-top:1px solid #e9ecef; }
+        .progress-text { font-size:.8rem; color:var(--secondary); }
+
+        .join-header-nav {
+            background:rgba(255,255,255,.12);
+            display:flex; align-items:center; justify-content:space-between;
+            padding:10px 24px; font-size:.82rem;
+        }
+        .join-header-nav a { color:rgba(255,255,255,.85); text-decoration:none; }
+        .join-header-nav a:hover { color:#fff; }
+    </style>
+</head>
+<body class="public-join">
+
+<!-- Hero -->
+<div class="join-hero">
+    <!-- Navigation bar inside hero -->
+    <div class="join-header-nav">
+        <a href="/join/@movement.PublicToken">
+            <i class="fas fa-landmark me-1"></i> @movement.Name
+        </a>
+    </div>
+
+    <div class="container py-3">
+        <div class="movement-logo" style="background:transparent;border:none;margin-bottom:8px">
+            <img src="/images/logo.jpg" alt="ائتلاف دولة القانون"
+                 style="width:90px;height:90px;object-fit:cover;border-radius:50%;
+                        border:3px solid rgba(255,255,255,.5);box-shadow:0 4px 15px rgba(0,0,0,.2)"/>
+        </div>
+        <h1 style="font-size:1rem;opacity:.8;margin-bottom:4px">ائتلاف دولة القانون</h1>
+        <h1>@movement.Name</h1>
+        @if (!string.IsNullOrEmpty(movement.Description))
+        {
+            <p>@movement.Description</p>
+        }
+        @if (!string.IsNullOrEmpty(movement.Address))
+        {
+            <p class="mt-1" style="font-size:.88rem; opacity:.8">
+                <i class="fas fa-map-marker-alt me-1"></i>@movement.Address
+            </p>
+        }
+    </div>
+</div>
+
+<!-- Form Container -->
+<div class="join-form-container">
+    <div class="join-form-card">
+
+        <div class="mb-4">
+            <h4 class="fw-800 mb-1" style="color:var(--primary-dark)">
+                <i class="fas fa-user-plus me-2"></i> استمارة طلب الانضمام
+            </h4>
+            <p class="text-muted mb-0" style="font-size:.83rem">
+                يرجى تعبئة جميع الحقول ثم الضغط على إرسال
+            </p>
+        </div>
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger mb-4">
+                <div class="fw-700 mb-2">
+                    <i class="fas fa-exclamation-circle me-1"></i> يرجى تصحيح الأخطاء التالية:
+                </div>
+                <ul class="mb-0 ps-3">
+                    @foreach (var kv in ViewData.ModelState)
+                    {
+                        if (kv.Value == null) { continue; }
+                        foreach (var err in kv.Value.Errors)
+                        {
+                            <li>
+                                @{
+                                    string fieldLabel = kv.Key switch
+                                    {
+                                        "FullName" => "الاسم الكامل",
+                                        "Phone"    => "رقم الهاتف",
+                                        "Email"    => "البريد الإلكتروني",
+                                        _          => ""
+                                    };
+                                }
+                                @if (!string.IsNullOrEmpty(fieldLabel))
+                                {
+                                    <strong>@fieldLabel:</strong>
+                                }
+                                @err.ErrorMessage
+                            </li>
+                        }
+                    }
+                </ul>
+            </div>
+        }
+
+        <!-- Wizard Tabs -->
+        <div class="wizard-tabs" id="wizardTabs">
+            <button type="button" class="wizard-tab active" onclick="goTab(0)">
+                <span class="tab-icon"><i class="fas fa-user"></i></span>
+                <span>الشخصية</span>
+            </button>
+            <button type="button" class="wizard-tab" onclick="goTab(1)">
+                <span class="tab-icon"><i class="fas fa-home"></i></span>
+                <span>السكن</span>
+            </button>
+            <button type="button" class="wizard-tab" onclick="goTab(2)">
+                <span class="tab-icon"><i class="fas fa-graduation-cap"></i></span>
+                <span>العلمية</span>
+            </button>
+            <button type="button" class="wizard-tab" onclick="goTab(3)">
+                <span class="tab-icon"><i class="fas fa-briefcase"></i></span>
+                <span>المهنية</span>
+            </button>
+            <button type="button" class="wizard-tab" onclick="goTab(4)">
+                <span class="tab-icon"><i class="fas fa-clock"></i></span>
+                <span>الخدمة</span>
+            </button>
+            <button type="button" class="wizard-tab" onclick="goTab(5)">
+                <span class="tab-icon"><i class="fas fa-star"></i></span>
+                <span>الطاقات</span>
+            </button>
+        </div>
+
+        <form method="post" asp-controller="Public" asp-action="Join" asp-route-token="@movement.PublicToken" id="joinForm" novalidate>
+            @Html.AntiForgeryToken()
+
+            <!-- ═══ Tab 0: البيانات الشخصية ══════════════════════════════ -->
+            <div class="wizard-panel active" id="panel-0">
+                <h6 class="fw-700 mb-3" style="color:var(--primary)">
+                    <i class="fas fa-user me-2"></i> البيانات الشخصية
+                </h6>
+                <div class="row g-3">
+                @{ 
+                    bool nameErr  = ViewData.ModelState.ContainsKey("FullName") && ViewData.ModelState["FullName"]!.Errors.Any();
+                    bool phoneErr = ViewData.ModelState.ContainsKey("Phone")    && ViewData.ModelState["Phone"]!.Errors.Any();
+                    bool emailErr = ViewData.ModelState.ContainsKey("Email")    && ViewData.ModelState["Email"]!.Errors.Any();
+                }
+                <div class="col-md-6">
+                    <label class="form-label">الاسم الرباعي واللقب <span class="text-danger">*</span></label>
+                    <input type="text" name="FullName" class="form-control @(nameErr ? "is-invalid" : "")"
+                           value="@Model.FullName" required maxlength="200"
+                           placeholder="الاسم الأول / الثاني / الثالث / الرابع / اللقب"/>
+                    @if (nameErr)
+                    {
+                        <div class="invalid-feedback">@ViewData.ModelState["FullName"]!.Errors[0].ErrorMessage</div>
+                    }
+                    else
+                    {
+                        <div class="form-text">يجب أن يكون فريداً غير مسجل مسبقاً</div>
+                    }
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">الجنس</label>
+                    <select name="Gender" class="form-select">
+                        <option value="">— اختر —</option>
+                        <option value="1" selected="@(Model.Gender == Gender.Male)">ذكر</option>
+                        <option value="2" selected="@(Model.Gender == Gender.Female)">أنثى</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">تاريخ الميلاد</label>
+                    <input type="date" name="BirthDate" class="form-control"
+                           value="@(Model.BirthDate?.ToString("yyyy-MM-dd"))"/>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">رقم الهاتف <span class="text-danger">*</span></label>
+                    <input type="tel" name="Phone" class="form-control @(phoneErr ? "is-invalid" : "")"
+                           value="@Model.Phone" required maxlength="20" placeholder="07xx xxx xxxx"/>
+                    @if (phoneErr)
+                    {
+                        <div class="invalid-feedback">@ViewData.ModelState["Phone"]!.Errors[0].ErrorMessage</div>
+                    }
+                    else
+                    {
+                        <div class="form-text">يجب أن يكون فريداً غير مسجل مسبقاً</div>
+                    }
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">البريد الإلكتروني <small class="text-muted">(اختياري)</small></label>
+                    <input type="email" name="Email" class="form-control @(emailErr ? "is-invalid" : "")"
+                           value="@Model.Email" maxlength="200" placeholder="example@mail.com"/>
+                    @if (emailErr)
+                    {
+                        <div class="invalid-feedback">@ViewData.ModelState["Email"]!.Errors[0].ErrorMessage</div>
+                    }
+                </div>
+                </div>
+                <div class="step-nav">
+                    <span class="progress-text">الخطوة 1 من 6</span>
+                    <button type="button" class="btn btn-primary" onclick="goTab(1)">
+                        التالي <i class="fas fa-arrow-left ms-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ═══ Tab 1: بيانات السكن ══════════════════════════════════ -->
+            <div class="wizard-panel" id="panel-1">
+                <h6 class="fw-700 mb-3" style="color:var(--primary)">
+                    <i class="fas fa-home me-2"></i> بيانات السكن
+                </h6>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">المحافظة</label>
+                        <select name="Province" class="form-select" id="provinceSelect">
+                            <option value="">— اختر المحافظة —</option>
+                            @foreach (var p in new[]{"بغداد","البصرة","نينوى","أربيل","النجف","كربلاء","الأنبار","ديالى","صلاح الدين","واسط","ميسان","ذي قار","المثنى","القادسية","بابل","كركوك","السليمانية","دهوك"})
+                            {
+                                <option value="@p" selected="@(Model.Province == p)">@p</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">القضاء</label>
+                        <input type="text" name="District" class="form-control" value="@Model.District" maxlength="100" placeholder="اسم القضاء"/>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">الناحية</label>
+                        <input type="text" name="SubDistrict" class="form-control" value="@Model.SubDistrict" maxlength="100" placeholder="اسم الناحية"/>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">العنوان التفصيلي</label>
+                        <textarea name="Address" class="form-control" rows="2" maxlength="500"
+                                  placeholder="الحي / الشارع / رقم الدار...">@Model.Address</textarea>
+                    </div>
+                </div>
+                <div class="step-nav">
+                    <button type="button" class="btn btn-outline-secondary" onclick="goTab(0)">
+                        <i class="fas fa-arrow-right ms-1"></i> السابق
+                    </button>
+                    <span class="progress-text">الخطوة 2 من 6</span>
+                    <button type="button" class="btn btn-primary" onclick="goTab(2)">
+                        التالي <i class="fas fa-arrow-left ms-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ═══ Tab 2: البيانات العلمية ══════════════════════════════ -->
+            <div class="wizard-panel" id="panel-2">
+                <h6 class="fw-700 mb-3" style="color:var(--primary)">
+                    <i class="fas fa-graduation-cap me-2"></i> البيانات العلمية
+                </h6>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">التحصيل الدراسي</label>
+                        <select name="EducationLevel" class="form-select">
+                            <option value="">— اختر —</option>
+                            @foreach (var lvl in (List<string>)(ViewBag.EducationLevels ?? new List<string>()))
+                            {
+                                <option value="@lvl" selected="@(Model.EducationLevel == lvl)">@lvl</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">الاختصاص / التخصص</label>
+                        <input type="text" name="Specialization" class="form-control"
+                               value="@Model.Specialization" maxlength="200"
+                               placeholder="مثال: قانون، هندسة، طب، اقتصاد..."/>
+                    </div>
+                </div>
+                <div class="step-nav">
+                    <button type="button" class="btn btn-outline-secondary" onclick="goTab(1)">
+                        <i class="fas fa-arrow-right ms-1"></i> السابق
+                    </button>
+                    <span class="progress-text">الخطوة 3 من 6</span>
+                    <button type="button" class="btn btn-primary" onclick="goTab(3)">
+                        التالي <i class="fas fa-arrow-left ms-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ═══ Tab 3: البيانات المهنية ══════════════════════════════ -->
+            <div class="wizard-panel" id="panel-3">
+                <h6 class="fw-700 mb-3" style="color:var(--primary)">
+                    <i class="fas fa-briefcase me-2"></i> البيانات المهنية
+                </h6>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">المهنة</label>
+                        <input type="text" name="Occupation" class="form-control"
+                               value="@Model.Occupation" maxlength="200" placeholder="المهنة الحالية"/>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">العنوان الوظيفي</label>
+                        <input type="text" name="JobTitle" class="form-control"
+                               value="@Model.JobTitle" maxlength="200"
+                               placeholder="مثال: مدير، مهندس أول، محاسب..."/>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">مكان العمل</label>
+                        <input type="text" name="WorkPlace" class="form-control"
+                               value="@Model.WorkPlace" maxlength="200"
+                               placeholder="اسم الجهة / المؤسسة / الشركة"/>
+                    </div>
+                </div>
+                <div class="step-nav">
+                    <button type="button" class="btn btn-outline-secondary" onclick="goTab(2)">
+                        <i class="fas fa-arrow-right ms-1"></i> السابق
+                    </button>
+                    <span class="progress-text">الخطوة 4 من 6</span>
+                    <button type="button" class="btn btn-primary" onclick="goTab(4)">
+                        التالي <i class="fas fa-arrow-left ms-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ═══ Tab 4: سنوات الخدمة الوظيفية ════════════════════════ -->
+            <div class="wizard-panel" id="panel-4">
+                <h6 class="fw-700 mb-3" style="color:var(--primary)">
+                    <i class="fas fa-clock me-2"></i> سنوات الخدمة الوظيفية
+                </h6>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">تاريخ المباشرة بالوظيفة</label>
+                        <input type="date" name="ServiceStartDate" class="form-control"
+                               value="@(Model.ServiceStartDate?.ToString("yyyy-MM-dd"))"/>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">سنوات الخدمة</label>
+                        <input type="number" name="ServiceYears" class="form-control"
+                               value="@Model.ServiceYears" min="0" max="60"
+                               placeholder="عدد السنوات"/>
+                    </div>
+                </div>
+                <div class="step-nav">
+                    <button type="button" class="btn btn-outline-secondary" onclick="goTab(3)">
+                        <i class="fas fa-arrow-right ms-1"></i> السابق
+                    </button>
+                    <span class="progress-text">الخطوة 5 من 6</span>
+                    <button type="button" class="btn btn-primary" onclick="goTab(5)">
+                        التالي <i class="fas fa-arrow-left ms-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ═══ Tab 5: الطاقات والخبرات ══════════════════════════════ -->
+            <div class="wizard-panel" id="panel-5">
+                <h6 class="fw-700 mb-3" style="color:var(--primary)">
+                    <i class="fas fa-star me-2"></i> الطاقات والخبرات
+                </h6>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">المهارات</label>
+                        <textarea name="Skills" class="form-control" rows="2" maxlength="500"
+                                  placeholder="اذكر مهاراتك...">@Model.Skills</textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">الخبرات</label>
+                        <textarea name="Experiences" class="form-control" rows="2" maxlength="500"
+                                  placeholder="اذكر خبراتك السابقة...">@Model.Experiences</textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">الدورات التدريبية</label>
+                        <textarea name="TrainingCourses" class="form-control" rows="2" maxlength="500"
+                                  placeholder="الدورات التي أتممتها...">@Model.TrainingCourses</textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">اللغات</label>
+                        <input type="text" name="Languages" class="form-control"
+                               value="@Model.Languages" maxlength="200"
+                               placeholder="مثال: العربية، الإنجليزية، الفارسية..."/>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">مجال الاستفادة من العضو</label>
+                        <select name="BenefitField" class="form-select">
+                            <option value="">— اختر المجال —</option>
+                            @foreach (var bf in (List<string>)(ViewBag.BenefitFields ?? new List<string>()))
+                            {
+                                <option value="@bf" selected="@(Model.BenefitField == bf)">@bf</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">ملاحظات إضافية</label>
+                        <textarea name="Notes" class="form-control" rows="2" maxlength="1000"
+                                  placeholder="أي معلومات إضافية...">@Model.Notes</textarea>
+                    </div>
+                </div>
+                <div class="step-nav">
+                    <button type="button" class="btn btn-outline-secondary" onclick="goTab(4)">
+                        <i class="fas fa-arrow-right ms-1"></i> السابق
+                    </button>
+                    <span class="progress-text">الخطوة 6 من 6</span>
+                    <button type="submit" class="btn btn-success btn-lg px-5">
+                        <i class="fas fa-paper-plane me-2"></i> إرسال الطلب
+                    </button>
+                </div>
+            </div>
+
+        </form><!-- end form -->
+    </div><!-- end card -->
+
+    @if (!string.IsNullOrEmpty(movement.Phone) || !string.IsNullOrEmpty(movement.Email))
+    {
+        <div class="text-center mt-4 mb-5 text-muted" style="font-size:.85rem">
+            <i class="fas fa-phone me-1"></i>@movement.Phone
+            @if (!string.IsNullOrEmpty(movement.Email))
+            {
+                <span class="mx-3">|</span>
+                <i class="fas fa-envelope me-1"></i>@movement.Email
+            }
+        </div>
+    }
+</div><!-- end container -->
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+var currentTab = 0;
+var totalTabs  = 6;
+
+// التحقق قبل الإرسال
+document.getElementById('joinForm').addEventListener('submit', function(e) {
+    var errors = [];
+    var focusTab = -1;
+
+    var fullName = document.querySelector('[name="FullName"]').value.trim();
+    var phone    = document.querySelector('[name="Phone"]').value.trim();
+
+    if (!fullName) {
+        errors.push('الاسم الكامل مطلوب');
+        document.querySelector('[name="FullName"]').classList.add('is-invalid');
+        if (focusTab === -1) focusTab = 0;
+    } else {
+        document.querySelector('[name="FullName"]').classList.remove('is-invalid');
+    }
+
+    if (!phone) {
+        errors.push('رقم الهاتف مطلوب');
+        document.querySelector('[name="Phone"]').classList.add('is-invalid');
+        if (focusTab === -1) focusTab = 0;
+    } else if (!/^07\d{9}$/.test(phone.replace(/\s/g,''))) {
+        errors.push('رقم الهاتف غير صحيح (يجب أن يبدأ بـ 07 ويتكون من 11 رقم)');
+        document.querySelector('[name="Phone"]').classList.add('is-invalid');
+        if (focusTab === -1) focusTab = 0;
+    } else {
+        document.querySelector('[name="Phone"]').classList.remove('is-invalid');
+    }
+
+    var email = document.querySelector('[name="Email"]').value.trim();
+    var emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+    if (email && !emailRegex.test(email)) {
+        errors.push('صيغة البريد الإلكتروني غير صحيحة');
+        document.querySelector('[name="Email"]').classList.add('is-invalid');
+        if (focusTab === -1) focusTab = 0;
+    } else {
+        document.querySelector('[name="Email"]').classList.remove('is-invalid');
+    }
+
+    if (errors.length > 0) {
+        e.preventDefault();
+        if (focusTab >= 0) goTab(focusTab);
+
+        var box = document.getElementById('clientErrors');
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'clientErrors';
+            box.className = 'alert alert-danger mb-3';
+            document.getElementById('joinForm').prepend(box);
+        }
+        box.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i><strong>يرجى تصحيح الأخطاء التالية:</strong><ul class="mb-0 mt-2">'
+            + errors.map(function(e){ return '<li>' + e + '</li>'; }).join('')
+            + '</ul>';
+        window.scrollTo({top: document.querySelector('.join-form-card').offsetTop - 10, behavior:'smooth'});
+    }
+});
+
+// فتح التاب الذي يحتوي على الخطأ
+currentTab = @errorTabIndex;
+
+function goTab(idx) {
+    // Mark previous as done
+    var tabs   = document.querySelectorAll('.wizard-tab');
+    var panels = document.querySelectorAll('.wizard-panel');
+
+    tabs.forEach(function(t, i) {
+        t.classList.remove('active', 'done');
+        if (i === idx)   t.classList.add('active');
+        else if (i < idx) t.classList.add('done');
+    });
+
+    panels.forEach(function(p, i) {
+        p.classList.toggle('active', i === idx);
+    });
+
+    currentTab = idx;
+    window.scrollTo({ top: document.querySelector('.join-form-card').offsetTop - 20, behavior: 'smooth' });
+}
+
+// Initialize
+goTab(currentTab);
+</script>
+</body>
+</html>

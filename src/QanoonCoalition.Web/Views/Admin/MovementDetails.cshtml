@@ -1,0 +1,154 @@
+@using QanoonCoalition.Web.Models
+@model Movement
+@{
+    ViewData["Title"] = $"تفاصيل - {Model.Name}";
+}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-sitemap"></i> @Model.Name</h1>
+    <div class="d-flex gap-2">
+        <a asp-action="EditMovement" asp-route-id="@Model.Id" class="btn btn-outline-primary">
+            <i class="fas fa-edit me-1"></i> تعديل
+        </a>
+        <a asp-action="MovementManagers" asp-route-movementId="@Model.Id" class="btn btn-outline-info">
+            <i class="fas fa-user-shield me-1"></i> المسؤولون
+        </a>
+        <a href="/join/@Model.PublicToken" target="_blank" class="btn btn-outline-success">
+            <i class="fas fa-link me-1"></i> رابط الانضمام
+        </a>
+        <a asp-action="Movements" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-right me-1"></i> العودة
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-info-circle"></i> معلومات الحركة</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="text-muted" style="font-size:.8rem">الحالة</div>
+                    @if (Model.IsActive)
+                    { <span class="status-approved">نشطة</span> }
+                    else
+                    { <span class="status-rejected">معطلة</span> }
+                </div>
+                @if (!string.IsNullOrEmpty(Model.Phone))
+                {
+                    <div class="mb-3">
+                        <div class="text-muted" style="font-size:.8rem">الهاتف</div>
+                        <div class="fw-600">@Model.Phone</div>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(Model.Email))
+                {
+                    <div class="mb-3">
+                        <div class="text-muted" style="font-size:.8rem">البريد</div>
+                        <div class="fw-600">@Model.Email</div>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(Model.Address))
+                {
+                    <div class="mb-3">
+                        <div class="text-muted" style="font-size:.8rem">العنوان</div>
+                        <div class="fw-600">@Model.Address</div>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(Model.Description))
+                {
+                    <div class="mb-3">
+                        <div class="text-muted" style="font-size:.8rem">الوصف</div>
+                        <div style="font-size:.88rem">@Model.Description</div>
+                    </div>
+                }
+                <div class="mb-3">
+                    <div class="text-muted" style="font-size:.8rem">رابط الانضمام</div>
+                    <div class="input-group mt-1">
+                        <input type="text" class="form-control form-control-sm" 
+                               value="/join/@Model.PublicToken" id="joinLink" readonly/>
+                        <button class="btn btn-outline-primary btn-sm" onclick="copyLink()">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:.8rem">تاريخ الإنشاء</div>
+                    <div>@Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr)">
+            <div class="stat-card blue">
+                <div class="stat-icon"><i class="fas fa-users"></i></div>
+                <div>
+                    <div class="stat-value">@ViewBag.MemberCount</div>
+                    <div class="stat-label">الأعضاء</div>
+                </div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+                <div>
+                    <div class="stat-value">@ViewBag.RequestCount</div>
+                    <div class="stat-label">الطلبات</div>
+                </div>
+            </div>
+            <div class="stat-card red">
+                <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                <div>
+                    <div class="stat-value">@ViewBag.PendingCount</div>
+                    <div class="stat-label">قيد المراجعة</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Managers -->
+        <div class="card mt-0">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-user-shield"></i> مسؤولو الحركة</span>
+                <a asp-action="MovementManagers" asp-route-movementId="@Model.Id" class="btn btn-outline-primary btn-sm">إدارة</a>
+            </div>
+            <div class="card-body">
+                @if (Model.Managers.Any())
+                {
+                    @foreach (var mgr in Model.Managers)
+                    {
+                        <div class="d-flex align-items-center gap-3 py-2 border-bottom">
+                            <div class="rounded-circle bg-primary-soft d-flex align-items-center justify-content-center"
+                                 style="width:36px;height:36px;flex-shrink:0">
+                                <i class="fas fa-user" style="color:var(--primary)"></i>
+                            </div>
+                            <div>
+                                <div class="fw-600">@mgr.FullName</div>
+                                <div style="font-size:.8rem;color:var(--secondary)">@mgr.Email</div>
+                            </div>
+                            @if (mgr.IsActive)
+                            { <span class="ms-auto status-approved">نشط</span> }
+                            else
+                            { <span class="ms-auto status-rejected">معطل</span> }
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-muted text-center py-3">
+                        <i class="fas fa-user-slash me-2"></i> لم يُضاف مسؤول بعد
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function copyLink() {
+    const txt = document.getElementById('joinLink').value;
+    navigator.clipboard.writeText(window.location.origin + txt);
+    alert('تم نسخ الرابط!');
+}
+</script>
+}

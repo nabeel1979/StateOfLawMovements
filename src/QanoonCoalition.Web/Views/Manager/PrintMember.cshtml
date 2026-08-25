@@ -1,0 +1,454 @@
+@using QanoonCoalition.Web.Models
+@model Member
+@{
+    Layout = null;
+    var movement = Model.Movement;
+    string genderText = Model.Gender == Gender.Male ? "ذكر" : Model.Gender == Gender.Female ? "أنثى" : "—";
+}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>بطاقة عضوية — @Model.FullName</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            background: #f5f5f5;
+            color: #1a1a1a;
+            font-size: 13px;
+            direction: rtl;
+        }
+
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 20px auto;
+            background: #fff;
+            padding: 0;
+            box-shadow: 0 0 20px rgba(0,0,0,.15);
+        }
+
+        /* ── رأس الصفحة ── */
+        .print-header {
+            background: linear-gradient(135deg, #1a6b3a 0%, #2d9e5f 100%);
+            color: #fff;
+            padding: 20px 28px 16px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            border-bottom: 4px solid #f5a623;
+        }
+        .header-logo {
+            width: 70px;
+            height: 70px;
+            background: rgba(255,255,255,.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 2px solid rgba(255,255,255,.4);
+        }
+        .header-logo svg { width: 40px; height: 40px; fill: #fff; }
+        .header-text { flex: 1; }
+        .header-coalition {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: .5px;
+            margin-bottom: 4px;
+        }
+        .header-movement {
+            font-size: 15px;
+            font-weight: 600;
+            opacity: .92;
+            margin-bottom: 2px;
+        }
+        .header-sub {
+            font-size: 11px;
+            opacity: .75;
+        }
+        .header-badge {
+            text-align: center;
+            background: rgba(255,255,255,.15);
+            border: 1px solid rgba(255,255,255,.35);
+            border-radius: 10px;
+            padding: 10px 16px;
+        }
+        .header-badge .serial { font-size: 22px; font-weight: 800; letter-spacing: 2px; }
+        .header-badge .serial-label { font-size: 10px; opacity: .8; margin-top: 2px; }
+
+        /* ── شريط العنوان ── */
+        .doc-title {
+            background: #f0f7f3;
+            border-bottom: 1px solid #c8e6d5;
+            padding: 10px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .doc-title h2 { font-size: 15px; color: #1a6b3a; font-weight: 700; }
+        .doc-title .meta { font-size: 11px; color: #666; }
+
+        /* ── المحتوى ── */
+        .content { padding: 20px 28px; }
+
+        .section {
+            margin-bottom: 18px;
+            border: 1px solid #d4e8dc;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .section-title {
+            background: #1a6b3a;
+            color: #fff;
+            padding: 7px 14px;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .fields-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0;
+        }
+        .fields-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+        .fields-grid.cols-1 { grid-template-columns: 1fr; }
+
+        .field {
+            padding: 8px 14px;
+            border-bottom: 1px solid #eef5f1;
+            border-left: 1px solid #eef5f1;
+        }
+        .field:last-child { border-left: none; }
+        .field-label {
+            font-size: 10px;
+            color: #5a8a6e;
+            font-weight: 600;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+        }
+        .field-value {
+            font-size: 13px;
+            color: #1a1a1a;
+            font-weight: 500;
+            word-break: break-word;
+        }
+        .field-value.empty { color: #aaa; font-style: italic; font-size: 11px; }
+
+        .field-span2 { grid-column: span 2; }
+        .field-span3 { grid-column: span 3; }
+
+        /* ── قسم النصوص الطويلة ── */
+        .text-block {
+            padding: 8px 14px;
+            border-bottom: 1px solid #eef5f1;
+        }
+
+        /* ── تذييل ── */
+        .print-footer {
+            border-top: 2px solid #1a6b3a;
+            padding: 12px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f9fdf9;
+            margin-top: 8px;
+        }
+        .footer-text { font-size: 10px; color: #666; }
+        .footer-sign {
+            text-align: center;
+        }
+        .footer-sign .sign-line {
+            width: 140px;
+            border-bottom: 1px solid #333;
+            margin: 0 auto 4px;
+            height: 30px;
+        }
+        .footer-sign .sign-label { font-size: 10px; color: #555; }
+
+        /* ── أزرار الطباعة (لا تظهر عند الطباعة) ── */
+        .no-print {
+            text-align: center;
+            padding: 16px;
+            background: #fff;
+            border-top: 1px solid #ddd;
+        }
+        .btn-print {
+            background: #1a6b3a;
+            color: #fff;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0 6px;
+        }
+        .btn-back {
+            background: #6c757d;
+            color: #fff;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0 6px;
+        }
+
+        @@media print {
+            body { background: #fff; }
+            .page { margin: 0; box-shadow: none; width: 100%; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page">
+
+    <!-- رأس الصفحة -->
+    <div class="print-header">
+        <div class="header-logo">
+            <img src="/images/logo.jpg" alt="ائتلاف دولة القانون"
+                 style="width:70px;height:70px;object-fit:cover;border-radius:50%"/>
+        </div>
+        <div class="header-text">
+            <div class="header-coalition">ائتلاف دولة القانون</div>
+            <div class="header-movement">@movement?.Name</div>
+            <div class="header-sub">نظام إدارة الحركات</div>
+        </div>
+        @if (!string.IsNullOrEmpty(Model.PhotoPath))
+        {
+            <img src="@Model.PhotoPath"
+                 style="width:80px;height:90px;object-fit:cover;border-radius:6px;border:2px solid rgba(255,255,255,.4)"/>
+        }
+        <div class="header-badge">
+            <div class="serial">@Model.SerialNumber</div>
+            <div class="serial-label">الرقم التسلسلي</div>
+        </div>
+    </div>
+
+    <!-- شريط العنوان -->
+    <div class="doc-title">
+        <h2>📋 بطاقة بيانات العضو</h2>
+        <div class="meta">
+            تاريخ الإصدار: @DateTime.Now.ToString("dd/MM/yyyy")
+            &nbsp;|&nbsp;
+            تاريخ الانضمام: @Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")
+        </div>
+    </div>
+
+    <!-- المحتوى -->
+    <div class="content">
+
+        <!-- البيانات الشخصية -->
+        <div class="section">
+            <div class="section-title">👤 البيانات الشخصية</div>
+            <div class="fields-grid">
+                <div class="field field-span2">
+                    <div class="field-label">الاسم الكامل</div>
+                    <div class="field-value" style="font-size:15px; font-weight:700">@Model.FullName</div>
+                </div>
+                <div class="field">
+                    <div class="field-label">الجنس</div>
+                    <div class="field-value">@genderText</div>
+                </div>
+                <div class="field">
+                    <div class="field-label">تاريخ الميلاد</div>
+                    <div class="field-value">
+                        @(Model.BirthDate.HasValue ? Model.BirthDate.Value.ToString("dd/MM/yyyy") : "—")
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">رقم الهاتف</div>
+                    <div class="field-value">@Model.Phone</div>
+                </div>
+                <div class="field">
+                    <div class="field-label">البريد الإلكتروني</div>
+                    <div class="field-value @(string.IsNullOrEmpty(Model.Email) ? "empty" : "")">
+                        @(string.IsNullOrEmpty(Model.Email) ? "غير مدخل" : Model.Email)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- بيانات السكن -->
+        <div class="section">
+            <div class="section-title">🏠 بيانات السكن</div>
+            <div class="fields-grid">
+                <div class="field">
+                    <div class="field-label">المحافظة</div>
+                    <div class="field-value @(string.IsNullOrEmpty(Model.Province) ? "empty" : "")">
+                        @(string.IsNullOrEmpty(Model.Province) ? "—" : Model.Province)
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">القضاء</div>
+                    <div class="field-value @(string.IsNullOrEmpty(Model.District) ? "empty" : "")">
+                        @(string.IsNullOrEmpty(Model.District) ? "—" : Model.District)
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">الناحية</div>
+                    <div class="field-value @(string.IsNullOrEmpty(Model.SubDistrict) ? "empty" : "")">
+                        @(string.IsNullOrEmpty(Model.SubDistrict) ? "—" : Model.SubDistrict)
+                    </div>
+                </div>
+                <div class="field field-span3">
+                    <div class="field-label">العنوان التفصيلي</div>
+                    <div class="field-value @(string.IsNullOrEmpty(Model.Address) ? "empty" : "")">
+                        @(string.IsNullOrEmpty(Model.Address) ? "—" : Model.Address)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- البيانات العلمية -->
+        <div class="section">
+            <div class="section-title">🎓 البيانات العلمية</div>
+            <div class="fields-grid cols-2">
+                <div class="field">
+                    <div class="field-label">التحصيل الدراسي</div>
+                    <div class="field-value @(string.IsNullOrEmpty(Model.EducationLevel) ? "empty" : "")">
+                        @(string.IsNullOrEmpty(Model.EducationLevel) ? "—" : Model.EducationLevel)
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">الاختصاص / التخصص</div>
+                    <div class="field-value @(string.IsNullOrEmpty(Model.Specialization) ? "empty" : "")">
+                        @(string.IsNullOrEmpty(Model.Specialization) ? "—" : Model.Specialization)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- البيانات المهنية -->
+        <div class="section">
+            <div class="section-title">💼 البيانات المهنية</div>
+            <div class="fields-grid">
+                <div class="field">
+                    <div class="field-label">المهنة</div>
+                    <div class="field-value @(string.IsNullOrEmpty(Model.Occupation) ? "empty" : "")">
+                        @(string.IsNullOrEmpty(Model.Occupation) ? "—" : Model.Occupation)
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">العنوان الوظيفي</div>
+                    <div class="field-value @(string.IsNullOrEmpty(Model.JobTitle) ? "empty" : "")">
+                        @(string.IsNullOrEmpty(Model.JobTitle) ? "—" : Model.JobTitle)
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">مكان العمل</div>
+                    <div class="field-value @(string.IsNullOrEmpty(Model.WorkPlace) ? "empty" : "")">
+                        @(string.IsNullOrEmpty(Model.WorkPlace) ? "—" : Model.WorkPlace)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- سنوات الخدمة -->
+        <div class="section">
+            <div class="section-title">⏱ سنوات الخدمة الوظيفية</div>
+            <div class="fields-grid cols-2">
+                <div class="field">
+                    <div class="field-label">تاريخ المباشرة بالوظيفة</div>
+                    <div class="field-value @(!Model.ServiceStartDate.HasValue ? "empty" : "")">
+                        @(Model.ServiceStartDate.HasValue ? Model.ServiceStartDate.Value.ToString("dd/MM/yyyy") : "—")
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">سنوات الخدمة</div>
+                    <div class="field-value @(!Model.ServiceYears.HasValue ? "empty" : "")">
+                        @(Model.ServiceYears.HasValue ? $"{Model.ServiceYears} سنة" : "—")
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- الطاقات والخبرات -->
+        <div class="section">
+            <div class="section-title">⭐ الطاقات والخبرات</div>
+            <div class="fields-grid cols-2">
+                <div class="field">
+                    <div class="field-label">المهارات</div>
+                    <div class="field-value @(string.IsNullOrEmpty(Model.Skills) ? "empty" : "")">
+                        @(string.IsNullOrEmpty(Model.Skills) ? "—" : Model.Skills)
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">الخبرات</div>
+                    <div class="field-value @(string.IsNullOrEmpty(Model.Experiences) ? "empty" : "")">
+                        @(string.IsNullOrEmpty(Model.Experiences) ? "—" : Model.Experiences)
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">الدورات التدريبية</div>
+                    <div class="field-value @(string.IsNullOrEmpty(Model.TrainingCourses) ? "empty" : "")">
+                        @(string.IsNullOrEmpty(Model.TrainingCourses) ? "—" : Model.TrainingCourses)
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">اللغات</div>
+                    <div class="field-value @(string.IsNullOrEmpty(Model.Languages) ? "empty" : "")">
+                        @(string.IsNullOrEmpty(Model.Languages) ? "—" : Model.Languages)
+                    </div>
+                </div>
+                <div class="field field-span2">
+                    <div class="field-label">مجال الاستفادة من العضو</div>
+                    <div class="field-value @(string.IsNullOrEmpty(Model.BenefitField) ? "empty" : "")">
+                        @(string.IsNullOrEmpty(Model.BenefitField) ? "—" : Model.BenefitField)
+                    </div>
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(Model.Notes))
+            {
+                <div class="text-block">
+                    <div class="field-label" style="margin-bottom:4px">ملاحظات</div>
+                    <div class="field-value">@Model.Notes</div>
+                </div>
+            }
+        </div>
+
+    </div><!-- end content -->
+
+    <!-- تذييل -->
+    <div class="print-footer">
+        <div class="footer-text">
+            ائتلاف دولة القانون — @movement?.Name<br/>
+            <span style="color:#aaa">نظام إدارة الحركات &copy; @DateTime.Now.Year</span>
+        </div>
+        <div class="footer-sign">
+            <div class="sign-line"></div>
+            <div class="sign-label">توقيع مسؤول الحركة وختمها</div>
+        </div>
+        <div class="footer-text" style="text-align:left">
+            تاريخ الطباعة:<br/>
+            @DateTime.Now.ToString("dd/MM/yyyy — HH:mm")
+        </div>
+    </div>
+
+</div><!-- end page -->
+
+<!-- أزرار التحكم -->
+<div class="no-print">
+    <button class="btn-print" onclick="window.print()">
+        🖨️ طباعة
+    </button>
+    <button class="btn-back" onclick="window.close()">
+        ✕ إغلاق
+    </button>
+</div>
+
+<script>
+    // طباعة تلقائية عند فتح الصفحة (اختياري)
+    // window.onload = () => window.print();
+</script>
+</body>
+</html>

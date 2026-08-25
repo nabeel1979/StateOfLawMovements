@@ -1,0 +1,35 @@
+# Build outputs
+bin/
+obj/
+*.user
+
+# ASP.NET
+wwwroot/lib/
+
+# Entity Framework migrations snapshots (keep migrations folder but not DB files)
+*.mdf
+*.ldf
+
+# Published output
+publish/
+out/
+
+# Secrets & config overrides
+appsettings.Development.json
+appsettings.Production.json
+*.env
+*.pfx
+*.key
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.suo
+*.sln.docstates
+
+# Uploads (user-generated content, not source code)
+wwwroot/uploads/
+
+# OS
+Thumbs.db
+.DS_Store

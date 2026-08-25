@@ -1,0 +1,75 @@
+@using QanoonCoalition.Web.Models
+@model List<JoinRequest>
+@{
+    ViewData["Title"] = "طلبات الانضمام";
+}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-file-alt"></i> طلبات الانضمام</h1>
+</div>
+
+<!-- Status Tabs -->
+<div class="d-flex gap-2 mb-4 flex-wrap">
+    <a asp-action="JoinRequests" class="btn @(ViewBag.Status == null ? "btn-primary" : "btn-outline-secondary")">
+        الكل <span class="badge bg-secondary ms-1">@((int)ViewBag.Pending + (int)ViewBag.Approved + (int)ViewBag.Rejected)</span>
+    </a>
+    <a asp-action="JoinRequests" asp-route-status="1" class="btn @(ViewBag.Status?.ToString() == "1" ? "btn-warning" : "btn-outline-warning")">
+        قيد المراجعة <span class="badge bg-warning text-dark ms-1">@ViewBag.Pending</span>
+    </a>
+    <a asp-action="JoinRequests" asp-route-status="2" class="btn @(ViewBag.Status?.ToString() == "2" ? "btn-success" : "btn-outline-success")">
+        مقبولة <span class="badge bg-success ms-1">@ViewBag.Approved</span>
+    </a>
+    <a asp-action="JoinRequests" asp-route-status="3" class="btn @(ViewBag.Status?.ToString() == "3" ? "btn-danger" : "btn-outline-danger")">
+        مرفوضة <span class="badge bg-danger ms-1">@ViewBag.Rejected</span>
+    </a>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>الرقم المرجعي</th>
+                    <th>الاسم</th>
+                    <th>الهاتف</th>
+                    <th>الحركة</th>
+                    <th>الحالة</th>
+                    <th>تاريخ الطلب</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model)
+                {
+                    <tr>
+                        <td><code style="font-size:.8rem">@r.ReferenceNumber</code></td>
+                        <td class="fw-600">@r.FullName</td>
+                        <td>@r.Phone</td>
+                        <td>@r.Movement.Name</td>
+                        <td>
+                            @switch (r.Status)
+                            {
+                                case RequestStatus.Pending:
+                                    <span class="status-pending">قيد المراجعة</span>
+                                    break;
+                                case RequestStatus.Approved:
+                                    <span class="status-approved">مقبول</span>
+                                    break;
+                                case RequestStatus.Rejected:
+                                    <span class="status-rejected">مرفوض</span>
+                                    break;
+                            }
+                        </td>
+                        <td style="font-size:.82rem">@r.SubmittedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (!Model.Any())
+        {
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p>لا توجد طلبات.</p>
+            </div>
+        }
+    </div>
+</div>
