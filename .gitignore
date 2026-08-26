@@ -33,3 +33,14 @@ wwwroot/uploads/
 # OS
 Thumbs.db
 .DS_Store
+
+# Deploy artifacts
+*.zip
+
+# Member data imports/exports (PII)
+tools/*.sql
+tools/*.csv
+tools/*.txt
+tools/*.log
+*.xlsx
+~$*

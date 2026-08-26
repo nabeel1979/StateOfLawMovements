@@ -37,6 +37,10 @@ public class Movement
     [MaxLength(200)]
     public string? Website { get; set; }
 
+    /// <summary>المحافظة التي تتبعها الحركة</summary>
+    [MaxLength(50)]
+    public string? Governorate { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

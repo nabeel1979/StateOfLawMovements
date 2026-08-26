@@ -13,7 +13,7 @@
         <a asp-action="MovementManagers" asp-route-movementId="@Model.Id" class="btn btn-outline-info">
             <i class="fas fa-user-shield me-1"></i> المسؤولون
         </a>
-        <a href="/join/@Model.PublicToken" target="_blank" class="btn btn-outline-success">
+        <a href="http://form.gcc.iq/join/@Model.PublicToken" target="_blank" class="btn btn-outline-success">
             <i class="fas fa-link me-1"></i> رابط الانضمام
         </a>
         <a asp-action="Movements" class="btn btn-outline-secondary">
@@ -66,7 +66,7 @@
                     <div class="text-muted" style="font-size:.8rem">رابط الانضمام</div>
                     <div class="input-group mt-1">
                         <input type="text" class="form-control form-control-sm" 
-                               value="/join/@Model.PublicToken" id="joinLink" readonly/>
+                               value="http://form.gcc.iq/join/@Model.PublicToken" id="joinLink" readonly/>
                         <button class="btn btn-outline-primary btn-sm" onclick="copyLink()">
                             <i class="fas fa-copy"></i>
                         </button>

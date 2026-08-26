@@ -2,36 +2,15 @@
 @model List<Member>
 @{
     ViewData["Title"] = "الأعضاء";
+    ViewBag.ShowAddMember = true;
+    var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
 }
 
 <div class="page-header">
     <h1 class="page-title"><i class="fas fa-users"></i> الأعضاء</h1>
-    <a asp-action="AddMember" class="btn btn-primary">
-        <i class="fas fa-user-plus me-1"></i> إضافة عضو
-    </a>
 </div>
 
-<div class="search-bar">
-    <form method="get" asp-action="Members" class="row g-2 align-items-end">
-        <div class="col-md-5">
-            <label class="form-label">البحث</label>
-            <input type="text" name="q" class="form-control" value="@ViewBag.Query" placeholder="اكتب للبحث..."/>
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">البحث بواسطة</label>
-            @{ var sby = ViewBag.SearchBy?.ToString(); }
-            <select name="by" class="form-select">
-                <option value="name"   selected="@(sby == "name")">الاسم</option>
-                <option value="serial" selected="@(sby == "serial")">الرقم التسلسلي</option>
-                <option value="phone"  selected="@(sby == "phone")">رقم الهاتف</option>
-                <option value="email"  selected="@(sby == "email")">البريد الإلكتروني</option>
-            </select>
-        </div>
-        <div class="col-md-3">
-            <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search me-1"></i> بحث</button>
-        </div>
-    </form>
-</div>
+@await Html.PartialAsync("_MemberFilterBar")
 
 <div class="card">
     <div class="card-header">
@@ -60,7 +39,9 @@
                             <div class="d-flex align-items-center gap-2">
                                 @if (!string.IsNullOrEmpty(m.PhotoPath))
                                 {
-                                    <img src="@m.PhotoPath" style="width:36px;height:36px;object-fit:cover;border-radius:50%;border:2px solid #c8e6d5"/>
+                                    <img src="@m.PhotoPath" data-zoom="@m.PhotoPath" data-zoom-title="@m.FullName"
+                                         title="اضغط لتكبير الصورة"
+                                         style="width:36px;height:36px;object-fit:cover;border-radius:50%;border:2px solid #c8e6d5;cursor:zoom-in"/>
                                 }
                                 else
                                 {
@@ -85,6 +66,15 @@
                                class="btn btn-sm btn-outline-secondary me-1" title="طباعة بطاقة العضو">
                                 <i class="fas fa-print"></i>
                             </a>
+                            <form asp-action="DeleteMember" method="post" class="d-inline"
+                                  data-confirm="سيتم حذف العضو &quot;@m.FullName&quot; نهائياً مع صورته. لا يمكن التراجع عن هذه العملية."
+                                  data-confirm-type="danger">
+                                <input type="hidden" name="id" value="@m.Id"/>
+                                <input type="hidden" name="returnUrl" value="@returnUrl"/>
+                                <button type="submit" class="btn btn-sm btn-outline-danger me-1" title="حذف العضو">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
                         </td>
                     </tr>
                 }
@@ -94,7 +84,7 @@
         {
             <div class="empty-state">
                 <i class="fas fa-users"></i>
-                <p>لا توجد نتائج.</p>
+                <p>لا توجد نتائج مطابقة للفلاتر المحددة.</p>
             </div>
         }
     </div>
@@ -107,8 +97,7 @@
             @for (int p = 1; p <= ViewBag.TotalPages; p++)
             {
                 <li class="page-item @(p == ViewBag.Page ? "active" : "")">
-                    <a class="page-link" asp-action="Members"
-                       asp-route-q="@ViewBag.Query" asp-route-by="@ViewBag.SearchBy" asp-route-page="@p">@p</a>
+                    <a class="page-link" href="#" onclick="mfGoToPage(@p); return false;">@p</a>
                 </li>
             }
         </ul>

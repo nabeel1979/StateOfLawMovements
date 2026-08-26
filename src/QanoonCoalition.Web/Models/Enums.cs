@@ -3,7 +3,9 @@ namespace QanoonCoalition.Web.Models;
 public enum UserRole
 {
     Admin = 1,
-    MovementManager = 2
+    MovementManager = 2,
+    /// <summary>مستخدم عادي بدون صلاحيات إدارية</summary>
+    Viewer = 3
 }
 
 public enum Gender
@@ -36,5 +38,6 @@ public enum AuditAction
     UpdateRequestStatus,
     UpdateConstants,
     Login,
-    Logout
+    Logout,
+    Export
 }

@@ -80,6 +80,9 @@ public class JoinRequest
     [MaxLength(1000)]
     public string? Notes { get; set; }
 
+    [MaxLength(500)]
+    public string? PhotoPath { get; set; }         // صورة العضو
+
     // ─── حالة الطلب ────────────────────────────────────────
     public int MovementId { get; set; }
 

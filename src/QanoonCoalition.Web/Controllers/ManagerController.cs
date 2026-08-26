@@ -17,9 +17,11 @@ public class ManagerController : Controller
     private readonly IMovementService _movements;
     private readonly IAuditLogService _audit;
     private readonly SystemConstantService _sysConst;
+    private readonly MemberFilterOptionsService _filterOptions;
 
     public ManagerController(AppDbContext db, IMemberService members, IJoinRequestService requests,
-        IMovementService movements, IAuditLogService audit, SystemConstantService sysConst)
+        IMovementService movements, IAuditLogService audit, SystemConstantService sysConst,
+        MemberFilterOptionsService filterOptions)
     {
         _db = db;
         _members = members;
@@ -27,6 +29,7 @@ public class ManagerController : Controller
         _movements = movements;
         _audit = audit;
         _sysConst = sysConst;
+        _filterOptions = filterOptions;
     }
 
     private int GetMovementId() =>
@@ -52,26 +55,54 @@ public class ManagerController : Controller
     }
 
     // ─── Members ─────────────────────────────────────────────────────────────
-    public async Task<IActionResult> Members(string? q, string? by, int page = 1)
+    public async Task<IActionResult> Members(List<MemberFilter>? filters, FilterMatch match = FilterMatch.All,
+        int page = 1)
     {
         var movementId = GetMovementId();
-        var (items, total) = await _members.SearchAsync(movementId, q, by, page, 20);
-        ViewBag.Query = q;
-        ViewBag.SearchBy = by;
+        var (items, total) = await _members.SearchAsync(movementId, filters, match, page, 20);
+        ViewBag.Filters = MemberFilterHelper.Normalize(filters);
+        ViewBag.FilterOptions = await _filterOptions.GetAsync(movementId);
+        ViewBag.Match = match;
         ViewBag.Page = page;
         ViewBag.TotalPages = (int)Math.Ceiling(total / 20.0);
         ViewBag.Total = total;
         return View(items);
     }
 
+    /// <summary>تصدير أعضاء الحركة إلى Excel بقالب "استمارة البيانات الهيكلية"</summary>
+    public async Task<IActionResult> ExportMembers(List<MemberFilter>? filters,
+        FilterMatch match = FilterMatch.All)
+    {
+        var movementId = GetMovementId();
+        var (items, _) = await _members.SearchAsync(movementId, filters, match, 1, int.MaxValue);
+
+        var movement = await _db.Movements
+            .Include(m => m.Managers)
+            .FirstOrDefaultAsync(m => m.Id == movementId);
+
+        var bytes = MembersExcelExporter.Build(
+            items,
+            movement?.Name ?? "الحركة",
+            movement?.Managers.FirstOrDefault(u => u.IsActive)?.FullName,
+            movement?.CreatedAt);
+
+        await _audit.LogAsync(AuditAction.Export, "Member",
+            description: $"تصدير {items.Count} عضو إلى Excel", movementId: movementId);
+
+        return File(bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            $"أعضاء_{movement?.Name}_{DateTime.Now:yyyy-MM-dd}.xlsx");
+    }
+
     // helper لحفظ صورة العضو
     private async Task<string?> SavePhotoAsync(IFormFile? photo, string? oldPath = null)
     {
         if (photo == null || photo.Length == 0) return oldPath;
-        var allowed = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-        var ext = Path.GetExtension(photo.FileName).ToLowerInvariant();
-        if (!allowed.Contains(ext)) return oldPath;
-        if (photo.Length > 3 * 1024 * 1024) return oldPath; // max 3MB
+        if (!MemberPhoto.IsValid(photo, out var error))
+        {
+            TempData["Error"] = error;
+            return oldPath;
+        }
 
         var dir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "members");
         Directory.CreateDirectory(dir);
@@ -83,18 +114,25 @@ public class ManagerController : Controller
             if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
         }
 
-        var fileName = $"{Guid.NewGuid()}{ext}";
+        var fileName = $"{Guid.NewGuid()}{MemberPhoto.SafeExtension(photo.FileName)}";
         var fullPath = Path.Combine(dir, fileName);
         await using var stream = new FileStream(fullPath, FileMode.Create);
         await photo.CopyToAsync(stream);
         return $"/uploads/members/{fileName}";
     }
 
+    /// <summary>قوائم استمارة العضو المنسدلة، كلها من ثوابت النظام</summary>
+    private async Task LoadMemberFormLists()
+    {
+        ViewBag.EducationLevels = await _sysConst.GetValuesAsync(SysConst.EducationLevel);
+        ViewBag.BenefitFields   = await _sysConst.GetValuesAsync(SysConst.BenefitField);
+        ViewBag.Provinces       = await _sysConst.GetValuesAsync(SysConst.Province);
+    }
+
     public async Task<IActionResult> AddMember()
     {
         ViewBag.MovementId = GetMovementId();
-        ViewBag.EducationLevels = await _sysConst.GetValuesAsync(SysConst.EducationLevel);
-        ViewBag.BenefitFields   = await _sysConst.GetValuesAsync(SysConst.BenefitField);
+        await LoadMemberFormLists();
         return View(new Member());
     }
 
@@ -111,8 +149,7 @@ public class ManagerController : Controller
         if (!ModelState.IsValid)
         {
             ViewBag.MovementId = member.MovementId;
-            ViewBag.EducationLevels = await _sysConst.GetValuesAsync(SysConst.EducationLevel);
-            ViewBag.BenefitFields   = await _sysConst.GetValuesAsync(SysConst.BenefitField);
+            await LoadMemberFormLists();
             return View(member);
         }
 
@@ -131,8 +168,7 @@ public class ManagerController : Controller
         {
             ModelState.AddModelError("", ex.Message);
             ViewBag.MovementId = member.MovementId;
-            ViewBag.EducationLevels = await _sysConst.GetValuesAsync(SysConst.EducationLevel);
-            ViewBag.BenefitFields   = await _sysConst.GetValuesAsync(SysConst.BenefitField);
+            await LoadMemberFormLists();
             return View(member);
         }
     }
@@ -148,8 +184,7 @@ public class ManagerController : Controller
     {
         var member = await _members.GetByIdAsync(id);
         if (member == null || member.MovementId != GetMovementId()) return NotFound();
-        ViewBag.EducationLevels = await _sysConst.GetValuesAsync(SysConst.EducationLevel);
-        ViewBag.BenefitFields   = await _sysConst.GetValuesAsync(SysConst.BenefitField);
+        await LoadMemberFormLists();
         return View(member);
     }
 
@@ -210,10 +245,53 @@ public class ManagerController : Controller
         catch (Exception ex)
         {
             ModelState.AddModelError("", ex.Message);
-            ViewBag.EducationLevels = await _sysConst.GetValuesAsync(SysConst.EducationLevel);
-            ViewBag.BenefitFields   = await _sysConst.GetValuesAsync(SysConst.BenefitField);
+            await LoadMemberFormLists();
             return View(existing);
         }
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteMember(int id, string? returnUrl)
+    {
+        var member = await _members.GetByIdAsync(id);
+        if (member == null || member.MovementId != GetMovementId()) return NotFound();
+
+        var name = member.FullName;
+        var serial = member.SerialNumber;
+        var photoPath = member.PhotoPath;
+
+        try
+        {
+            await _members.DeleteAsync(id);
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = $"تعذّر حذف العضو: {ex.Message}";
+            return BackToMembers(returnUrl);
+        }
+
+        DeletePhotoFile(photoPath);
+
+        await _audit.LogAsync(AuditAction.DeleteMember, "Member", id.ToString(),
+            oldValues: new { FullName = name, SerialNumber = serial, member.Phone },
+            movementId: member.MovementId,
+            description: $"حذف عضو: {name} ({serial})");
+
+        TempData["Success"] = $"تم حذف العضو \"{name}\" نهائياً";
+        return BackToMembers(returnUrl);
+    }
+
+    /// <summary>يرجع إلى القائمة مع الحفاظ على الفلاتر وترقيم الصفحات</summary>
+    private IActionResult BackToMembers(string? returnUrl) =>
+        !string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)
+            ? Redirect(returnUrl)
+            : RedirectToAction(nameof(Members));
+
+    private static void DeletePhotoFile(string? photoPath)
+    {
+        if (string.IsNullOrEmpty(photoPath)) return;
+        var file = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", photoPath.TrimStart('/'));
+        if (System.IO.File.Exists(file)) System.IO.File.Delete(file);
     }
 
     // ─── Join Requests ────────────────────────────────────────────────────────

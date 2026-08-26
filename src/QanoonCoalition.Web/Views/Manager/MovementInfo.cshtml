@@ -33,11 +33,11 @@
             <div class="col-12">
                 <div class="text-muted mb-1" style="font-size:.8rem">رابط صفحة الانضمام العامة</div>
                 <div class="input-group">
-                    <input type="text" class="form-control" id="pubLink" value="/join/@Model?.PublicToken" readonly/>
+                    <input type="text" class="form-control" id="pubLink" value="http://form.gcc.iq/join/@Model?.PublicToken" readonly/>
                     <button class="btn btn-outline-primary" onclick="navigator.clipboard.writeText(window.location.origin+document.getElementById('pubLink').value);alert('تم النسخ!')">
                         <i class="fas fa-copy"></i>
                     </button>
-                    <a href="/join/@Model?.PublicToken" target="_blank" class="btn btn-outline-success">
+                    <a href="http://form.gcc.iq/join/@Model?.PublicToken" target="_blank" class="btn btn-outline-success">
                         <i class="fas fa-external-link-alt"></i>
                     </a>
                 </div>

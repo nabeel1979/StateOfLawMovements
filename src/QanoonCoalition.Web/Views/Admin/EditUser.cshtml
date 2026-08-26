@@ -1,0 +1,127 @@
+@using QanoonCoalition.Web.Models
+@model User
+@{
+    ViewData["Title"] = "تعديل مستخدم";
+    bool isAdmin = Model.Role == UserRole.Admin;
+}
+
+<div class="page-header mb-4">
+    <h4 class="mb-1">
+        <i class="fas @(isAdmin ? "fa-user-shield" : "fa-user-edit") me-2" style="color:var(--primary)"></i>
+        تعديل: @Model.FullName
+        @if (isAdmin)
+        {
+            <span class="badge ms-2" style="background:var(--primary);font-size:.65rem;vertical-align:middle">مدير النظام</span>
+        }
+    </h4>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a asp-action="Users">مستخدمو النظام</a></li>
+            <li class="breadcrumb-item active">تعديل</li>
+        </ol>
+    </nav>
+</div>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        @foreach (var e in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        { <div><i class="fas fa-exclamation-circle me-1"></i>@e.ErrorMessage</div> }
+    </div>
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="post" asp-action="EditUser" asp-route-id="@Model.Id">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+                        <label class="form-label">الاسم الكامل <span class="text-danger">*</span></label>
+                        <input type="text" name="fullName" class="form-control" value="@Model.FullName" required/>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">البريد الإلكتروني <span class="text-danger">*</span></label>
+                        <input type="email" name="email" class="form-control" value="@Model.Email" required dir="ltr"/>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            كلمة المرور الجديدة
+                            <small class="text-muted">(اتركها فارغة إن لم تريد تغييرها)</small>
+                        </label>
+                        <div class="input-group">
+                            <input type="text" name="newPassword" id="genPass" class="form-control" readonly
+                                   dir="ltr" style="background:#f8f9fa;font-family:monospace"
+                                   placeholder="اضغط على توليد..."/>
+                            <button type="button" class="btn btn-outline-warning" onclick="generatePass()">
+                                <i class="fas fa-sync-alt me-1"></i> توليد
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="clearPass()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="form-text text-warning" id="passHint" style="display:none">
+                            <i class="fas fa-info-circle me-1"></i> سيتم تحديث كلمة المرور فور الحفظ
+                        </div>
+                    </div>
+
+                    @if (!isAdmin)
+                    {
+                        <div class="mb-4">
+                            <label class="form-label">الحالة</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="isActive" value="true"
+                                       @(Model.IsActive ? "checked" : "") id="isActiveSwitch"/>
+                                <label class="form-check-label" for="isActiveSwitch">
+                                    @(Model.IsActive ? "نشط" : "معطل")
+                                </label>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mb-4 p-3 rounded" style="background:#f0faf4;border:1px solid #c3e6cb;">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fas fa-shield-alt" style="color:var(--primary)"></i>
+                                <span style="font-size:.88rem;color:var(--primary);font-weight:600">
+                                    حساب مدير النظام — دائم التفعيل
+                                </span>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-5">
+                            <i class="fas fa-save me-2"></i> حفظ التعديلات
+                        </button>
+                        <a asp-action="Users" class="btn btn-outline-secondary">إلغاء</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function generatePass() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@@#$%!';
+    let pass = '';
+    for (let i = 0; i < 10; i++)
+        pass += chars[Math.floor(Math.random() * chars.length)];
+    document.getElementById('genPass').value = pass;
+    document.getElementById('passHint').style.display = '';
+}
+function clearPass() {
+    document.getElementById('genPass').value = '';
+    document.getElementById('passHint').style.display = 'none';
+}
+var sw = document.querySelector('[name="isActive"]');
+if (sw) sw.addEventListener('change', function() {
+    this.nextElementSibling.textContent = this.checked ? 'نشط' : 'معطل';
+});
+</script>
+}

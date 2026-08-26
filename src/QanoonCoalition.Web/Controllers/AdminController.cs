@@ -18,10 +18,11 @@ public class AdminController : Controller
     private readonly IAuditLogService _audit;
     private readonly IAuthService _auth;
     private readonly SystemConstantService _sysConst;
+    private readonly MemberFilterOptionsService _filterOptions;
 
     public AdminController(AppDbContext db, IMovementService movements, IMemberService members,
         IJoinRequestService requests, IAuditLogService audit, IAuthService auth,
-        SystemConstantService sysConst)
+        SystemConstantService sysConst, MemberFilterOptionsService filterOptions)
     {
         _db = db;
         _movements = movements;
@@ -30,6 +31,7 @@ public class AdminController : Controller
         _audit = audit;
         _auth = auth;
         _sysConst = sysConst;
+        _filterOptions = filterOptions;
     }
 
     // ─── Dashboard ───────────────────────────────────────────────────────────
@@ -54,19 +56,32 @@ public class AdminController : Controller
         return View(list);
     }
 
-    public IActionResult CreateMovement() => View();
+    /// <summary>قائمة المحافظات من ثوابت النظام</summary>
+    private async Task LoadProvinces() =>
+        ViewBag.Provinces = await _sysConst.GetValuesAsync(SysConst.Province);
+
+    public async Task<IActionResult> CreateMovement()
+    {
+        await LoadProvinces();
+        return View();
+    }
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateMovement(string name, string? address,
-        string? description, string? phone, string? email, string? website)
+        string? description, string? phone, string? email, string? website, string? governorate)
     {
         if (string.IsNullOrWhiteSpace(name))
-        { ModelState.AddModelError("name", "اسم الحركة مطلوب"); return View(); }
+        {
+            ModelState.AddModelError("name", "اسم الحركة مطلوب");
+            await LoadProvinces();
+            return View();
+        }
 
         try
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var movement = await _movements.CreateAsync(name, null, address, description, phone, email, website, userId);
+            if (!string.IsNullOrWhiteSpace(governorate)) { movement.Governorate = governorate; await _db.SaveChangesAsync(); }
             await _audit.LogAsync(AuditAction.CreateMovement, "Movement", movement.Id.ToString(),
                 newValues: new { movement.Name }, movementId: movement.Id,
                 description: $"إنشاء حركة: {movement.Name}");
@@ -76,6 +91,7 @@ public class AdminController : Controller
         catch (Exception ex)
         {
             ModelState.AddModelError("", ex.Message);
+            await LoadProvinces();
             return View();
         }
     }
@@ -95,17 +111,21 @@ public class AdminController : Controller
     {
         var movement = await _movements.GetByIdAsync(id);
         if (movement == null) return NotFound();
+        await LoadProvinces();
         return View(movement);
     }
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> EditMovement(int id, string name, string? address,
-        string? description, string? phone, string? email, string? website)
+        string? description, string? phone, string? email, string? website, string? governorate)
     {
         try
         {
             var old = await _movements.GetByIdAsync(id);
             await _movements.UpdateAsync(id, name, null, address, description, phone, email, website);
+            // حفظ المحافظة
+            var mov = await _db.Movements.FindAsync(id);
+            if (mov != null) { mov.Governorate = string.IsNullOrWhiteSpace(governorate) ? null : governorate; await _db.SaveChangesAsync(); }
             await _audit.LogAsync(AuditAction.UpdateMovement, "Movement", id.ToString(),
                 oldValues: new { old?.Name }, newValues: new { Name = name }, movementId: id,
                 description: $"تعديل حركة: {name}");
@@ -116,6 +136,7 @@ public class AdminController : Controller
         {
             ModelState.AddModelError("", ex.Message);
             var movement = await _movements.GetByIdAsync(id);
+            await LoadProvinces();
             return View(movement);
         }
     }
@@ -159,6 +180,7 @@ public class AdminController : Controller
         {
             var user = await _auth.CreateUserAsync(fullName, email, password, UserRole.MovementManager, movementId);
             user.Title = title;
+            user.MustChangePassword = true; // إجبار تغيير كلمة المرور عند أول دخول
             await _db.SaveChangesAsync();
             await _audit.LogAsync(AuditAction.CreateUser, "User", user.Id.ToString(),
                 newValues: new { user.FullName, user.Email, user.Title }, movementId: movementId,
@@ -185,7 +207,7 @@ public class AdminController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> EditManager(int id, string fullName, string? title,
+    public async Task<IActionResult> EditManager(int id, string fullName, string? email, string? title,
         string? newPassword, bool isActive)
     {
         var user = await _db.Users.Include(u => u.Movement).FirstOrDefaultAsync(u => u.Id == id);
@@ -198,8 +220,22 @@ public class AdminController : Controller
             return View(user);
         }
 
-        var old = new { user.FullName, user.Title, user.IsActive };
+        // التحقق من تكرار الإيميل
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            var emailTaken = await _db.Users.AnyAsync(u => u.Email == email.Trim() && u.Id != id);
+            if (emailTaken)
+            {
+                ModelState.AddModelError("email", "هذا البريد الإلكتروني مستخدم مسبقاً");
+                ViewBag.Movement = user.Movement;
+                ViewBag.ManagerTitles = await _sysConst.GetValuesAsync(SysConst.ManagerTitle);
+                return View(user);
+            }
+        }
+
+        var old = new { user.FullName, user.Email, user.Title, user.IsActive };
         user.FullName = fullName.Trim();
+        if (!string.IsNullOrWhiteSpace(email)) user.Email = email.Trim();
         user.Title = string.IsNullOrWhiteSpace(title) ? null : title.Trim();
         user.IsActive = isActive;
 
@@ -211,12 +247,13 @@ public class AdminController : Controller
                 ViewBag.Movement = user.Movement;
                 return View(user);
             }
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            user.PasswordHash       = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            user.MustChangePassword = true; // إجبار تغيير كلمة المرور عند الدخول التالي
         }
 
         await _db.SaveChangesAsync();
         await _audit.LogAsync(AuditAction.UpdateUser, "User", user.Id.ToString(),
-            oldValues: old, newValues: new { user.FullName, user.Title, user.IsActive },
+            oldValues: old, newValues: new { user.FullName, user.Email, user.Title, user.IsActive },
             movementId: user.MovementId,
             description: $"تعديل مسؤول حركة: {user.FullName}");
 
@@ -224,12 +261,28 @@ public class AdminController : Controller
         return RedirectToAction(nameof(MovementManagers), new { movementId = user.MovementId });
     }
 
-    // ─── Members ─────────────────────────────────────────────────────────────
-    public async Task<IActionResult> Members(string? q, string? by, int? movementId, int page = 1)
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleManagerStatus(int id)
     {
-        var (items, total) = await _members.SearchAsync(movementId, q, by, page, 20);
-        ViewBag.Query = q;
-        ViewBag.SearchBy = by;
+        var user = await _db.Users.FindAsync(id);
+        if (user == null || user.Role != UserRole.MovementManager) return NotFound();
+
+        user.IsActive = !user.IsActive;
+        await _db.SaveChangesAsync();
+
+        var statusText = user.IsActive ? "تم تفعيل" : "تم تعطيل";
+        TempData["Success"] = $"{statusText} حساب المسؤول \"{user.FullName}\"";
+        return RedirectToAction(nameof(MovementManagers), new { movementId = user.MovementId });
+    }
+
+    // ─── Members ─────────────────────────────────────────────────────────────
+    public async Task<IActionResult> Members(List<MemberFilter>? filters, FilterMatch match = FilterMatch.All,
+        int? movementId = null, int page = 1)
+    {
+        var (items, total) = await _members.SearchAsync(movementId, filters, match, page, 20);
+        ViewBag.Filters = MemberFilterHelper.Normalize(filters);
+        ViewBag.FilterOptions = await _filterOptions.GetAsync(movementId);
+        ViewBag.Match = match;
         ViewBag.MovementId = movementId;
         ViewBag.Page = page;
         ViewBag.TotalPages = (int)Math.Ceiling(total / 20.0);
@@ -245,12 +298,48 @@ public class AdminController : Controller
         return View(member);
     }
 
+    /// <summary>تصدير الأعضاء إلى Excel بقالب "استمارة البيانات الهيكلية"</summary>
+    public async Task<IActionResult> ExportMembers(List<MemberFilter>? filters,
+        FilterMatch match = FilterMatch.All, int? movementId = null)
+    {
+        // نجلب كل النتائج المطابقة للفلترة (بدون ترقيم صفحات)
+        var (items, _) = await _members.SearchAsync(movementId, filters, match, 1, int.MaxValue);
+
+        var movementName = "جميع الحركات";
+        string? managerName = null;
+        DateTime? createdAt = null;
+
+        if (movementId.HasValue)
+        {
+            var movement = await _db.Movements
+                .Include(m => m.Managers)
+                .FirstOrDefaultAsync(m => m.Id == movementId.Value);
+            if (movement != null)
+            {
+                movementName = movement.Name;
+                managerName  = movement.Managers.FirstOrDefault(u => u.IsActive)?.FullName;
+                createdAt    = movement.CreatedAt;
+            }
+        }
+
+        var bytes = MembersExcelExporter.Build(items, movementName, managerName, createdAt);
+        var fileName = $"أعضاء_{movementName}_{DateTime.Now:yyyy-MM-dd}.xlsx";
+
+        await _audit.LogAsync(AuditAction.Export, "Member",
+            description: $"تصدير {items.Count} عضو إلى Excel", movementId: movementId);
+
+        return File(bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+    }
+
     public async Task<IActionResult> PrintMember(int id)
     {
         var member = await _members.GetByIdAsync(id);
         if (member == null) return NotFound();
         return View("~/Views/Manager/PrintMember.cshtml", member);
     }
+
+    // حذف الأعضاء صلاحية مسؤول الحركة وحده - لا يوجد إجراء حذف هنا.
 
     // ─── Join Requests ────────────────────────────────────────────────────────
     public async Task<IActionResult> JoinRequests(int? movementId, RequestStatus? status, int page = 1)
@@ -296,9 +385,10 @@ public class AdminController : Controller
     public async Task<IActionResult> SystemConstants(string? category)
     {
         var all = await _sysConst.GetAllAsync();
-        ViewBag.Category = category;
-        ViewBag.CategoryLabels = SysConst.Labels;
-        if (!string.IsNullOrEmpty(category))
+        ViewBag.Category = SysConst.Find(category) == null ? null : category;
+        // الأعداد تُحسب قبل التصفية ليبقى شريط الفئات معبّراً عن الحالة كلها
+        ViewBag.Counts = await _sysConst.GetCountsAsync();
+        if (!string.IsNullOrEmpty(ViewBag.Category as string))
             all = all.Where(c => c.Category == category).ToList();
         return View(all);
     }
@@ -306,6 +396,11 @@ public class AdminController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateConstant(string category, string value)
     {
+        if (SysConst.Find(category) == null)
+        {
+            TempData["Error"] = "فئة غير معروفة";
+            return RedirectToAction(nameof(SystemConstants));
+        }
         if (string.IsNullOrWhiteSpace(value))
         {
             TempData["Error"] = "القيمة مطلوبة";
@@ -345,6 +440,29 @@ public class AdminController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleConstant(int id)
+    {
+        var item = await _sysConst.GetByIdAsync(id);
+        if (item == null) return NotFound();
+
+        await _sysConst.ToggleActiveAsync(id);
+        TempData["Success"] = item.IsActive
+            ? $"تم تعطيل \"{item.Value}\" ولن تظهر في القوائم"
+            : $"تم تفعيل \"{item.Value}\"";
+        return RedirectToAction(nameof(SystemConstants), new { category = item.Category });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> MoveConstant(int id, bool up)
+    {
+        var item = await _sysConst.GetByIdAsync(id);
+        if (item == null) return NotFound();
+
+        await _sysConst.MoveAsync(id, up);
+        return RedirectToAction(nameof(SystemConstants), new { category = item.Category });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConstant(int id)
     {
         var item = await _sysConst.GetByIdAsync(id);
@@ -353,5 +471,120 @@ public class AdminController : Controller
         await _sysConst.DeleteAsync(id);
         TempData["Success"] = "تم الحذف";
         return RedirectToAction(nameof(SystemConstants), new { category = cat });
+    }
+
+    // ─── إدارة مستخدمي النظام (Viewer) ──────────────────────────────────────
+
+    public async Task<IActionResult> Users(string? search)
+    {
+        var query = _db.Users
+            .Include(u => u.Movement)
+            .Where(u => u.Role == UserRole.Viewer || u.Role == UserRole.Admin);
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(u => u.FullName.Contains(search) || u.Email.Contains(search));
+
+        ViewBag.Search = search;
+        return View(await query.OrderBy(u => u.Role).ThenBy(u => u.FullName).ToListAsync());
+    }
+
+    public async Task<IActionResult> CreateUser()
+    {
+        ViewBag.Movements = await _db.Movements.Where(m => m.IsActive).OrderBy(m => m.Name).ToListAsync();
+        return View();
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateUser(string fullName, string email, string password, int? movementId)
+    {
+        ViewBag.Movements = await _db.Movements.Where(m => m.IsActive).OrderBy(m => m.Name).ToListAsync();
+
+        if (string.IsNullOrWhiteSpace(fullName) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            ModelState.AddModelError("", "جميع الحقول المطلوبة يجب ملؤها");
+            return View();
+        }
+        if (await _db.Users.AnyAsync(u => u.Email == email.Trim()))
+        {
+            ModelState.AddModelError("email", "هذا البريد الإلكتروني مستخدم مسبقاً");
+            return View();
+        }
+
+        var user = new User
+        {
+            FullName         = fullName.Trim(),
+            Email            = email.Trim(),
+            PasswordHash     = BCrypt.Net.BCrypt.HashPassword(password),
+            Role             = UserRole.Viewer,
+            MovementId       = movementId == 0 ? null : movementId,
+            MustChangePassword = true,
+            IsActive         = true
+        };
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        await _audit.LogAsync(AuditAction.CreateUser, "User", user.Id.ToString(),
+            newValues: new { user.FullName, user.Email },
+            description: $"إنشاء مستخدم نظام: {fullName}");
+
+        TempData["Success"] = $"تم إنشاء المستخدم \"{fullName}\" بنجاح";
+        return RedirectToAction(nameof(Users));
+    }
+
+    public async Task<IActionResult> EditUser(int id)
+    {
+        var user = await _db.Users.Include(u => u.Movement)
+            .FirstOrDefaultAsync(u => u.Id == id && (u.Role == UserRole.Viewer || u.Role == UserRole.Admin));
+        if (user == null) return NotFound();
+        return View(user);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditUser(int id, string fullName, string email, string? newPassword, bool isActive)
+    {
+        var user = await _db.Users
+            .FirstOrDefaultAsync(u => u.Id == id && (u.Role == UserRole.Viewer || u.Role == UserRole.Admin));
+        if (user == null) return NotFound();
+
+        if (string.IsNullOrWhiteSpace(fullName) || string.IsNullOrWhiteSpace(email))
+        {
+            ModelState.AddModelError("", "الاسم والبريد الإلكتروني مطلوبان");
+            return View(user);
+        }
+        if (await _db.Users.AnyAsync(u => u.Email == email.Trim() && u.Id != id))
+        {
+            ModelState.AddModelError("email", "هذا البريد الإلكتروني مستخدم مسبقاً");
+            return View(user);
+        }
+
+        user.FullName = fullName.Trim();
+        user.Email    = email.Trim();
+
+        // لا نغيّر حالة تفعيل مدير النظام
+        if (user.Role != UserRole.Admin)
+            user.IsActive = isActive;
+
+        if (!string.IsNullOrWhiteSpace(newPassword))
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+
+        await _db.SaveChangesAsync();
+        await _audit.LogAsync(AuditAction.UpdateUser, "User", user.Id.ToString(),
+            description: $"تعديل بيانات: {user.FullName}");
+
+        TempData["Success"] = $"تم تحديث بيانات \"{user.FullName}\"";
+        return RedirectToAction(nameof(Users));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteUser(int id)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id && u.Role == UserRole.Viewer); // Admin لا يُحذف
+        if (user == null) return NotFound();
+        _db.Users.Remove(user);
+        await _db.SaveChangesAsync();
+        await _audit.LogAsync(AuditAction.DeleteUser, "User", id.ToString(),
+            description: $"حذف مستخدم نظام: {user.FullName}");
+        TempData["Success"] = $"تم حذف المستخدم \"{user.FullName}\"";
+        return RedirectToAction(nameof(Users));
     }
 }

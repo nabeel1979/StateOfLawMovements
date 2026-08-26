@@ -9,37 +9,7 @@
     <span class="badge bg-primary fs-6">الإجمالي: @ViewBag.Total</span>
 </div>
 
-<!-- Search Bar -->
-<div class="search-bar">
-    <form method="get" asp-action="Members" class="row g-2 align-items-end">
-        <div class="col-md-4">
-            <label class="form-label">البحث</label>
-            <input type="text" name="q" class="form-control" value="@ViewBag.Query" placeholder="أدخل كلمة البحث..."/>
-        </div>
-        <div class="col-md-3">
-            <label class="form-label">البحث بواسطة</label>
-            <select name="by" class="form-select">
-                <option value="name"   selected="@(ViewBag.SearchBy == "name")">الاسم</option>
-                <option value="serial" selected="@(ViewBag.SearchBy == "serial")">الرقم التسلسلي</option>
-                <option value="phone"  selected="@(ViewBag.SearchBy == "phone")">رقم الهاتف</option>
-                <option value="email"  selected="@(ViewBag.SearchBy == "email")">البريد الإلكتروني</option>
-            </select>
-        </div>
-        <div class="col-md-3">
-            <label class="form-label">الحركة</label>
-            <select name="movementId" class="form-select">
-                <option value="">الكل</option>
-                @foreach (var m in (List<Movement>)ViewBag.Movements)
-                {
-                    <option value="@m.Id" selected="@(ViewBag.MovementId?.ToString() == m.Id.ToString())">@m.Name</option>
-                }
-            </select>
-        </div>
-        <div class="col-md-2">
-            <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search me-1"></i> بحث</button>
-        </div>
-    </form>
-</div>
+@await Html.PartialAsync("_MemberFilterBar")
 
 <div class="card">
     <div class="table-responsive">
@@ -65,7 +35,9 @@
                             <div class="d-flex align-items-center gap-2">
                                 @if (!string.IsNullOrEmpty(m.PhotoPath))
                                 {
-                                    <img src="@m.PhotoPath" style="width:36px;height:36px;object-fit:cover;border-radius:50%;border:2px solid #c8e6d5"/>
+                                    <img src="@m.PhotoPath" data-zoom="@m.PhotoPath" data-zoom-title="@m.FullName"
+                                         title="اضغط لتكبير الصورة"
+                                         style="width:36px;height:36px;object-fit:cover;border-radius:50%;border:2px solid #c8e6d5;cursor:zoom-in"/>
                                 }
                                 else
                                 {
@@ -100,7 +72,7 @@
         {
             <div class="empty-state">
                 <i class="fas fa-users"></i>
-                <p>لا توجد نتائج مطابقة.</p>
+                <p>لا توجد نتائج مطابقة للفلاتر المحددة.</p>
             </div>
         }
     </div>
@@ -113,9 +85,7 @@
             @for (int p = 1; p <= ViewBag.TotalPages; p++)
             {
                 <li class="page-item @(p == ViewBag.Page ? "active" : "")">
-                    <a class="page-link" asp-action="Members" 
-                       asp-route-q="@ViewBag.Query" asp-route-by="@ViewBag.SearchBy"
-                       asp-route-movementId="@ViewBag.MovementId" asp-route-page="@p">@p</a>
+                    <a class="page-link" href="#" onclick="mfGoToPage(@p); return false;">@p</a>
                 </li>
             }
         </ul>

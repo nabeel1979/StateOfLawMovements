@@ -44,9 +44,10 @@
                             </span>
                         </div>
                         <div>
-                            <label class="form-label mb-1">صورة العضو <small class="text-muted">(اختياري — JPG/PNG/WEBP، حد أقصى 3MB)</small></label>
+                            <label class="form-label mb-1">صورة العضو <small class="text-muted">(اختياري — @MemberPhoto.Hint)</small></label>
                             <input type="file" name="photo" id="photoInput" class="form-control"
-                                   accept=".jpg,.jpeg,.png,.webp" onchange="previewPhoto(this)"/>
+                                   accept="@MemberPhoto.Accept" onchange="previewPhoto(this)"/>
+                            <div id="photoError" class="text-danger small mt-1" style="display:none"></div>
                         </div>
                     </div>
                 </div>
@@ -85,7 +86,7 @@
                     <label class="form-label">المحافظة</label>
                     <select name="Province" class="form-select">
                         <option value="">— اختر —</option>
-                        @foreach (var p in new[]{"بغداد","البصرة","نينوى","أربيل","النجف","كربلاء","الأنبار","ديالى","صلاح الدين","واسط","ميسان","ذي قار","المثنى","القادسية","بابل","كركوك","السليمانية","دهوك"})
+                        @foreach (var p in (List<string>)(ViewBag.Provinces ?? new List<string>()))
                         {
                             <option value="@p" selected="@(Model.Province == p)">@p</option>
                         }
@@ -206,13 +207,29 @@
 
 <script>
 function previewPhoto(input) {
-    if (input.files && input.files[0]) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            var preview = document.getElementById('photoPreview');
-            preview.innerHTML = '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover"/>';
-        };
-        reader.readAsDataURL(input.files[0]);
+    var err = document.getElementById('photoError');
+    err.style.display = 'none';
+    if (!input.files || !input.files[0]) return;
+    var file = input.files[0];
+
+    if (!/\.(jpg|jpeg|png)$/i.test(file.name)) {
+        err.textContent = 'صيغة الصورة غير مدعومة. الصيغ المقبولة: JPG أو PNG فقط';
+        err.style.display = '';
+        input.value = '';
+        return;
     }
+    if (file.size > 3 * 1024 * 1024) {
+        err.textContent = 'حجم الصورة يجب أن لا يتجاوز 3MB';
+        err.style.display = '';
+        input.value = '';
+        return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var preview = document.getElementById('photoPreview');
+        preview.innerHTML = '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover"/>';
+    };
+    reader.readAsDataURL(file);
 }
 </script>

@@ -3,22 +3,41 @@
 @{
     ViewData["Title"] = "ثوابت النظام";
     var currentCat = ViewBag.Category as string;
-    var labels = ViewBag.CategoryLabels as Dictionary<string, string>
-                 ?? new Dictionary<string, string>();
+    var counts = ViewBag.Counts as Dictionary<string, (int Total, int Active)>
+                 ?? new Dictionary<string, (int, int)>();
 
-    string TabClass(string cat) => currentCat == cat ? "active" : "";
-    string BadgeColor(string cat) => cat switch
-    {
-        SysConst.EducationLevel => "success",
-        SysConst.BenefitField   => "info",
-        SysConst.ManagerTitle   => "warning",
-        _ => "secondary"
-    };
+    var shown = currentCat == null
+        ? SysConst.All
+        : SysConst.All.Where(c => c.Key == currentCat).ToList();
+
+    (int Total, int Active) CountOf(string key) =>
+        counts.TryGetValue(key, out var c) ? c : (0, 0);
+
+    var grandTotal = counts.Values.Sum(c => c.Total);
+    var grandOff   = counts.Values.Sum(c => c.Total - c.Active);
 }
 
 <div class="page-header">
-    <h1 class="page-title"><i class="fas fa-sliders-h me-2"></i>ثوابت النظام</h1>
-    <p class="text-muted mb-0">إدارة قوائم الاختيار المستخدمة في النظام</p>
+    <div>
+        <h1 class="page-title"><i class="fas fa-sliders-h"></i> ثوابت النظام</h1>
+        <p class="text-muted mb-0" style="font-size:.85rem">
+            القوائم المنسدلة المستخدمة في استمارات النظام. أي تعديل هنا يظهر فوراً في الاستمارات والفلاتر.
+        </p>
+    </div>
+    <div class="sc-summary">
+        <div class="sc-summary-item">
+            <span class="sc-summary-num">@SysConst.All.Count</span>
+            <span class="sc-summary-lbl">قائمة</span>
+        </div>
+        <div class="sc-summary-item">
+            <span class="sc-summary-num">@grandTotal</span>
+            <span class="sc-summary-lbl">قيمة</span>
+        </div>
+        <div class="sc-summary-item @(grandOff > 0 ? "is-off" : "")">
+            <span class="sc-summary-num">@grandOff</span>
+            <span class="sc-summary-lbl">معطلة</span>
+        </div>
+    </div>
 </div>
 
 @if (TempData["Success"] != null)
@@ -36,156 +55,183 @@
     </div>
 }
 
-<!-- Tabs -->
-<ul class="nav nav-tabs mb-4">
-    <li class="nav-item">
-        <a class="nav-link @(string.IsNullOrEmpty(currentCat) ? "active" : "")"
-           href="@Url.Action("SystemConstants")">
-            <i class="fas fa-list me-1"></i> الكل
+<div class="sc-toolbar">
+    <div class="sc-tabs">
+        <a class="sc-tab @(currentCat == null ? "active" : "")" href="@Url.Action("SystemConstants")">
+            <i class="fas fa-layer-group"></i> الكل
+            <span class="sc-tab-count">@grandTotal</span>
         </a>
-    </li>
-    @foreach (var kv in labels)
-    {
-        <li class="nav-item">
-            <a class="nav-link @TabClass(kv.Key)" href="@Url.Action("SystemConstants", new { category = kv.Key })">
-                <span class="badge bg-@BadgeColor(kv.Key) me-1">@Model.Count(x => x.Category == kv.Key && (string.IsNullOrEmpty(currentCat)))</span>
-                @kv.Value
+        @foreach (var cat in SysConst.All)
+        {
+            var c = CountOf(cat.Key);
+            <a class="sc-tab @(currentCat == cat.Key ? "active" : "")"
+               href="@Url.Action("SystemConstants", new { category = cat.Key })">
+                <i class="fas @cat.Icon"></i> @cat.Label
+                <span class="sc-tab-count">@c.Total</span>
             </a>
-        </li>
-    }
-</ul>
+        }
+    </div>
+    <div class="sc-search">
+        <i class="fas fa-search"></i>
+        <input type="text" id="scSearch" placeholder="ابحث في القيم..." autocomplete="off"/>
+    </div>
+</div>
 
-@foreach (var cat in (string.IsNullOrEmpty(currentCat) ? labels.Keys.ToList() : new List<string> { currentCat }))
-{
-    var items = Model.Where(x => x.Category == cat).ToList();
-    var label = labels.GetValueOrDefault(cat, cat);
+<div class="sc-grid @(shown.Count == 1 ? "single" : "")">
+    @foreach (var cat in shown)
+    {
+        var items = Model.Where(x => x.Category == cat.Key)
+                         .OrderBy(x => x.DisplayOrder).ThenBy(x => x.Id).ToList();
+        var c = CountOf(cat.Key);
 
-    <div class="card mb-4">
-        <div class="card-header d-flex align-items-center justify-content-between">
-            <h6 class="mb-0 fw-700">
-                <span class="badge bg-@BadgeColor(cat) me-2">@items.Count</span>
-                @label
-            </h6>
-            <!-- Add new value -->
-            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addModal_@cat">
-                <i class="fas fa-plus me-1"></i> إضافة قيمة
-            </button>
-        </div>
-        <div class="card-body p-0">
-            @if (!items.Any())
-            {
-                <p class="text-muted text-center py-4">لا توجد قيم</p>
-            }
-            else
-            {
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th style="width:50px">#</th>
-                                <th>القيمة</th>
-                                <th style="width:100px" class="text-center">الحالة</th>
-                                <th style="width:120px" class="text-center">الإجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in items.OrderBy(x => x.DisplayOrder))
+        <section class="sc-card" data-category="@cat.Key">
+            <header class="sc-card-head">
+                <div class="sc-card-icon"><i class="fas @cat.Icon"></i></div>
+                <div class="sc-card-title">
+                    <h2>@cat.Label</h2>
+                    <span class="sc-card-usage"><i class="fas fa-link"></i> @cat.UsedIn</span>
+                </div>
+                <div class="sc-card-meta">
+                    <span class="sc-pill">@c.Total قيمة</span>
+                    @if (c.Total - c.Active > 0)
+                    {
+                        <span class="sc-pill sc-pill-off">@(c.Total - c.Active) معطلة</span>
+                    }
+                </div>
+            </header>
+
+            <div class="sc-list">
+                @if (items.Count == 0)
+                {
+                    <p class="sc-empty"><i class="fas fa-inbox"></i> لا توجد قيم في هذه القائمة</p>
+                }
+                @for (var i = 0; i < items.Count; i++)
+                {
+                    var item = items[i];
+                    <div class="sc-row @(item.IsActive ? "" : "is-off")" data-value="@item.Value">
+                        <span class="sc-order">@(i + 1)</span>
+
+                        <span class="sc-value" data-role="text">@item.Value</span>
+
+                        <form method="post" asp-action="EditConstant" class="sc-edit" data-role="edit">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@item.Id"/>
+                            <input type="hidden" name="isActive" value="@item.IsActive.ToString().ToLower()"/>
+                            <input type="text" name="value" value="@item.Value" maxlength="200" required
+                                   class="sc-input" aria-label="تعديل القيمة"/>
+                            <button type="submit" class="sc-btn sc-btn-ok" title="حفظ">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button type="button" class="sc-btn" data-role="cancel" title="إلغاء">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </form>
+
+                        <div class="sc-actions" data-role="actions">
+                            @if (!item.IsActive)
                             {
-                                <tr>
-                                    <td class="text-muted">@item.DisplayOrder</td>
-                                    <td class="fw-600">@item.Value</td>
-                                    <td class="text-center">
-                                        @if (item.IsActive)
-                                        {
-                                            <span class="badge bg-success-subtle text-success">نشط</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary-subtle text-secondary">معطل</span>
-                                        }
-                                    </td>
-                                    <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-primary me-1"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#editModal_@item.Id"
-                                                title="تعديل">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <form method="post" asp-action="DeleteConstant" style="display:inline"
-                                              onsubmit="return confirm('هل تريد حذف هذه القيمة؟')">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@item.Id" />
-                                            <button class="btn btn-sm btn-outline-danger" title="حذف">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-
-                                <!-- Edit Modal -->
-                                <div class="modal fade" id="editModal_@item.Id" tabindex="-1">
-                                    <div class="modal-dialog modal-sm">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h6 class="modal-title">تعديل قيمة</h6>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <form method="post" asp-action="EditConstant">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="id" value="@item.Id" />
-                                                <div class="modal-body">
-                                                    <div class="mb-3">
-                                                        <label class="form-label">القيمة <span class="text-danger">*</span></label>
-                                                        <input type="text" name="value" class="form-control"
-                                                               value="@item.Value" required maxlength="200" />
-                                                    </div>
-                                                    <div class="form-check form-switch">
-                                                        <input class="form-check-input" type="checkbox"
-                                                               name="isActive" value="true"
-                                                               checked="@item.IsActive" id="active_@item.Id" />
-                                                        <label class="form-check-label" for="active_@item.Id">نشط</label>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">إلغاء</button>
-                                                    <button type="submit" class="btn btn-primary btn-sm">حفظ</button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
+                                <span class="sc-off-tag">معطلة</span>
                             }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
-    </div>
 
-    <!-- Add Modal -->
-    <div class="modal fade" id="addModal_@cat" tabindex="-1">
-        <div class="modal-dialog modal-sm">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h6 class="modal-title"><i class="fas fa-plus me-1"></i>إضافة إلى: @label</h6>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="post" asp-action="CreateConstant">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="category" value="@cat" />
-                    <div class="modal-body">
-                        <label class="form-label">القيمة <span class="text-danger">*</span></label>
-                        <input type="text" name="value" class="form-control" required maxlength="200"
-                               placeholder="أدخل القيمة الجديدة..." />
+                            <form method="post" asp-action="MoveConstant" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@item.Id"/>
+                                <input type="hidden" name="up" value="true"/>
+                                <button class="sc-btn" title="تحريك للأعلى" @(i == 0 ? "disabled" : "")>
+                                    <i class="fas fa-chevron-up"></i>
+                                </button>
+                            </form>
+                            <form method="post" asp-action="MoveConstant" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@item.Id"/>
+                                <input type="hidden" name="up" value="false"/>
+                                <button class="sc-btn" title="تحريك للأسفل" @(i == items.Count - 1 ? "disabled" : "")>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                            </form>
+
+                            <button type="button" class="sc-btn" data-role="rename" title="تعديل">
+                                <i class="fas fa-pen"></i>
+                            </button>
+
+                            <form method="post" asp-action="ToggleConstant" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@item.Id"/>
+                                <button class="sc-btn @(item.IsActive ? "" : "sc-btn-on")"
+                                        title="@(item.IsActive ? "تعطيل" : "تفعيل")">
+                                    <i class="fas @(item.IsActive ? "fa-toggle-on" : "fa-toggle-off")"></i>
+                                </button>
+                            </form>
+
+                            <form method="post" asp-action="DeleteConstant" class="d-inline"
+                                  data-confirm="سيتم حذف القيمة &quot;@item.Value&quot; من قائمة @cat.Label. الأعضاء المسجّلون بهذه القيمة لن تتغير بياناتهم، لكنها لن تعود متاحة للاختيار."
+                                  data-confirm-type="danger">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@item.Id"/>
+                                <button class="sc-btn sc-btn-del" title="حذف">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">إلغاء</button>
-                        <button type="submit" class="btn btn-success btn-sm">
-                            <i class="fas fa-plus me-1"></i> إضافة
-                        </button>
-                    </div>
-                </form>
+                }
             </div>
-        </div>
-    </div>
-}
+
+            <form method="post" asp-action="CreateConstant" class="sc-add">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="category" value="@cat.Key"/>
+                <i class="fas fa-plus"></i>
+                <input type="text" name="value" maxlength="200" required
+                       placeholder="أضف قيمة جديدة إلى @cat.Label" class="sc-input"/>
+                <button type="submit" class="sc-add-btn">إضافة</button>
+            </form>
+        </section>
+    }
+</div>
+
+<p class="sc-note">
+    <i class="fas fa-info-circle"></i>
+    التعطيل يخفي القيمة من الاستمارات دون المساس ببيانات الأعضاء المسجّلين بها، وهو الخيار الأنسب
+    بدلاً من الحذف. الترتيب هنا هو ترتيب ظهور القيم في القوائم المنسدلة.
+</p>
+
+<script>
+(function () {
+    // تعديل باسم مكانه بدل نافذة منبثقة لكل قيمة
+    document.querySelectorAll('.sc-row').forEach(function (row) {
+        var rename = row.querySelector('[data-role="rename"]');
+        var cancel = row.querySelector('[data-role="cancel"]');
+        if (!rename) return;
+
+        rename.addEventListener('click', function () {
+            row.classList.add('editing');
+            var input = row.querySelector('.sc-edit .sc-input');
+            input.focus();
+            input.select();
+        });
+        cancel.addEventListener('click', function () {
+            var input = row.querySelector('.sc-edit .sc-input');
+            input.value = row.getAttribute('data-value');
+            row.classList.remove('editing');
+        });
+        row.querySelector('.sc-edit').addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') { e.preventDefault(); cancel.click(); }
+        });
+    });
+
+    // بحث فوري يخفي القيم والبطاقات الفارغة
+    var search = document.getElementById('scSearch');
+    search.addEventListener('input', function () {
+        var q = search.value.trim();
+        document.querySelectorAll('.sc-card').forEach(function (card) {
+            var visible = 0;
+            card.querySelectorAll('.sc-row').forEach(function (row) {
+                var hit = !q || row.getAttribute('data-value').indexOf(q) !== -1;
+                row.style.display = hit ? '' : 'none';
+                if (hit) visible++;
+            });
+            card.style.display = (q && visible === 0) ? 'none' : '';
+        });
+    });
+})();
+</script>

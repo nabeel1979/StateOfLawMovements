@@ -73,6 +73,33 @@ public class JoinRequestService : IJoinRequestService
             .Include(r => r.Movement)
             .FirstOrDefaultAsync(r => r.ReferenceNumber == reference);
 
+    /// <summary>
+    /// ينسخ صورة الطلب نسخة خاصة بالعضو. النسخ مقصود: الطلب سجل تاريخي،
+    /// ولو تشاركا الملف نفسه لأدّى تغيير صورة العضو أو حذفه إلى إتلاف صورة الطلب.
+    /// عند تعذّر النسخ نشترك في المسار بدلاً من فقدان الصورة.
+    /// </summary>
+    public static string? CopyPhoto(string? sourcePath)
+    {
+        if (string.IsNullOrEmpty(sourcePath)) return null;
+
+        try
+        {
+            var root = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            var source = Path.Combine(root, sourcePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            if (!File.Exists(source)) return null;
+
+            var dir = Path.Combine(root, "uploads", "members");
+            Directory.CreateDirectory(dir);
+            var name = $"{Guid.NewGuid()}{Path.GetExtension(source)}";
+            File.Copy(source, Path.Combine(dir, name));
+            return $"/uploads/members/{name}";
+        }
+        catch
+        {
+            return sourcePath;
+        }
+    }
+
     public async Task<Member> ApproveAsync(int requestId, string? benefitField, int reviewedByUserId)
     {
         var strategy = _db.Database.CreateExecutionStrategy();
@@ -122,6 +149,7 @@ public class JoinRequestService : IJoinRequestService
                     TrainingCourses = request.TrainingCourses,
                     Languages = request.Languages,
                     BenefitField = benefitField ?? request.BenefitField,
+                    PhotoPath = CopyPhoto(request.PhotoPath),
                     Notes = request.Notes,
                     MovementId = request.MovementId,
                     ApprovedByUserId = reviewedByUserId,

@@ -1,0 +1,23 @@
+@*
+    صورة العضو مع إمكانية التكبير. النموذج: (مسار الصورة، اسم صاحبها)
+    الصورة تُفتح في عارض الصور العام المعرّف في _Layout عبر data-zoom.
+*@
+@model (string? Path, string? Name)
+
+<div class="photo-box">
+    @if (!string.IsNullOrEmpty(Model.Path))
+    {
+        <div class="photo-frame" data-zoom="@Model.Path" data-zoom-title="@Model.Name"
+             role="button" tabindex="0" title="اضغط لتكبير الصورة">
+            <img src="@Model.Path" alt="صورة @Model.Name"/>
+        </div>
+        <span class="photo-hint"><i class="fas fa-search-plus"></i> اضغط للتكبير</span>
+    }
+    else
+    {
+        <div class="photo-none">
+            <i class="fas fa-user-slash"></i>
+            <span>لا توجد صورة</span>
+        </div>
+    }
+</div>

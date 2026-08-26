@@ -8,11 +8,18 @@ public class HomeController : Controller
 {
     public IActionResult Index()
     {
+        var host = Request.Host.Host?.ToLower() ?? "";
+        if (host == "form.gcc.iq")
+            return RedirectToAction("Movements", "Public");
+
         if (User.Identity?.IsAuthenticated == true)
         {
-            return User.IsInRole("Admin")
-                ? RedirectToAction("Dashboard", "Admin")
-                : RedirectToAction("Dashboard", "Manager");
+            if (User.IsInRole("Admin"))
+                return RedirectToAction("Dashboard", "Admin");
+            if (User.IsInRole("MovementManager"))
+                return RedirectToAction("Dashboard", "Manager");
+            // Viewer أو أي دور آخر → تسجيل خروج وإعادة لصفحة الدخول
+            return RedirectToAction("Logout", "Account");
         }
         return RedirectToAction("Login", "Account");
     }

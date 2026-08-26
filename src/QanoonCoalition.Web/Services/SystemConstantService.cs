@@ -53,6 +53,56 @@ public class SystemConstantService
         }
     }
 
+    /// <summary>عدد القيم وعدد النشط منها لكل فئة</summary>
+    public async Task<Dictionary<string, (int Total, int Active)>> GetCountsAsync()
+    {
+        var rows = await _db.SystemConstants
+            .GroupBy(c => c.Category)
+            .Select(g => new
+            {
+                Category = g.Key,
+                Total = g.Count(),
+                Active = g.Count(c => c.IsActive)
+            })
+            .ToListAsync();
+
+        return rows.ToDictionary(r => r.Category, r => (r.Total, r.Active));
+    }
+
+    public async Task ToggleActiveAsync(int id)
+    {
+        var item = await _db.SystemConstants.FindAsync(id);
+        if (item == null) return;
+        item.IsActive = !item.IsActive;
+        await _db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// يبدّل القيمة مع جارتها في نفس الفئة. الترتيب يحدد تسلسل الظهور
+    /// في القوائم المنسدلة، ولذلك يُعاد ترقيمه أولاً لتفادي التساوي في القيم القديمة.
+    /// </summary>
+    public async Task MoveAsync(int id, bool up)
+    {
+        var item = await _db.SystemConstants.FindAsync(id);
+        if (item == null) return;
+
+        var siblings = await _db.SystemConstants
+            .Where(c => c.Category == item.Category)
+            .OrderBy(c => c.DisplayOrder).ThenBy(c => c.Id)
+            .ToListAsync();
+
+        for (var i = 0; i < siblings.Count; i++)
+            siblings[i].DisplayOrder = i + 1;
+
+        var index = siblings.FindIndex(c => c.Id == id);
+        var target = up ? index - 1 : index + 1;
+        if (index >= 0 && target >= 0 && target < siblings.Count)
+            (siblings[index].DisplayOrder, siblings[target].DisplayOrder) =
+                (siblings[target].DisplayOrder, siblings[index].DisplayOrder);
+
+        await _db.SaveChangesAsync();
+    }
+
     public async Task<bool> ValueExistsAsync(string category, string value, int? excludeId = null)
     {
         var q = _db.SystemConstants.Where(c => c.Category == category && c.Value == value);

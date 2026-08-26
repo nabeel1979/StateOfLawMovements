@@ -38,35 +38,42 @@
                     <!-- الشخصية -->
                     <div class="tab-pane fade show active" id="rp0">
                         <div class="row g-3">
-                            <div class="col-12">
-                                <div class="text-muted" style="font-size:.78rem">الاسم الكامل</div>
-                                <div class="fw-800 fs-5">@Model.FullName</div>
+                            <div class="col-auto">
+                                @await Html.PartialAsync("_MemberPhoto", (Model.PhotoPath, Model.FullName))
                             </div>
-                            <div class="col-md-6">
-                                <div class="text-muted" style="font-size:.78rem">رقم الهاتف</div>
-                                <div class="fw-600">@Model.Phone</div>
+                            <div class="col">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <div class="text-muted" style="font-size:.78rem">الاسم الكامل</div>
+                                        <div class="fw-800 fs-5">@Model.FullName</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="text-muted" style="font-size:.78rem">رقم الهاتف</div>
+                                        <div class="fw-600">@Model.Phone</div>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(Model.Email))
+                                    {
+                                        <div class="col-md-6">
+                                            <div class="text-muted" style="font-size:.78rem">البريد الإلكتروني</div>
+                                            <div>@Model.Email</div>
+                                        </div>
+                                    }
+                                    @if (Model.BirthDate.HasValue)
+                                    {
+                                        <div class="col-md-6">
+                                            <div class="text-muted" style="font-size:.78rem">تاريخ الميلاد</div>
+                                            <div>@Model.BirthDate.Value.ToString("dd/MM/yyyy")</div>
+                                        </div>
+                                    }
+                                    @if (Model.Gender.HasValue)
+                                    {
+                                        <div class="col-md-6">
+                                            <div class="text-muted" style="font-size:.78rem">الجنس</div>
+                                            <div>@(Model.Gender == Gender.Male ? "ذكر" : "أنثى")</div>
+                                        </div>
+                                    }
+                                </div>
                             </div>
-                            @if (!string.IsNullOrEmpty(Model.Email))
-                            {
-                                <div class="col-md-6">
-                                    <div class="text-muted" style="font-size:.78rem">البريد الإلكتروني</div>
-                                    <div>@Model.Email</div>
-                                </div>
-                            }
-                            @if (Model.BirthDate.HasValue)
-                            {
-                                <div class="col-md-6">
-                                    <div class="text-muted" style="font-size:.78rem">تاريخ الميلاد</div>
-                                    <div>@Model.BirthDate.Value.ToString("dd/MM/yyyy")</div>
-                                </div>
-                            }
-                            @if (Model.Gender.HasValue)
-                            {
-                                <div class="col-md-6">
-                                    <div class="text-muted" style="font-size:.78rem">الجنس</div>
-                                    <div>@(Model.Gender == Gender.Male ? "ذكر" : "أنثى")</div>
-                                </div>
-                            }
                         </div>
                     </div>
 
@@ -196,8 +203,8 @@
                                 }
                             </select>
                         </div>
-                        <button type="submit" class="btn btn-success w-100"
-                                onclick="return confirm('هل تريد قبول هذا الطلب وتحويله إلى عضو؟')">
+                        <button type="button" class="btn btn-success w-100"
+                                onclick="showConfirm('هل تريد قبول هذا الطلب وتحويله إلى عضو؟', 'approve', 'success')">
                             <i class="fas fa-check me-2"></i> قبول وتحويل إلى عضو
                         </button>
                     </form>
@@ -215,8 +222,8 @@
                             <label class="form-label">سبب الرفض <span class="text-danger">*</span></label>
                             <textarea name="reason" class="form-control" rows="3" required></textarea>
                         </div>
-                        <button type="submit" class="btn btn-danger w-100"
-                                onclick="return confirm('هل تريد رفض هذا الطلب؟')">
+                        <button type="button" class="btn btn-danger w-100"
+                                onclick="showConfirm('هل تريد رفض هذا الطلب؟', 'reject', 'danger')">
                             <i class="fas fa-times me-2"></i> رفض الطلب
                         </button>
                     </form>
@@ -249,6 +256,27 @@
             </div>
         }
 
+        <!-- Custom Confirm Modal -->
+        <div id="confirmModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
+            <div style="background:#fff;border-radius:16px;width:90%;max-width:420px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:fadeIn .2s ease">
+                <div id="modalHeader" style="padding:1.25rem 1.5rem;display:flex;align-items:center;gap:.75rem">
+                    <div id="modalIcon" style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0"></div>
+                    <div>
+                        <div style="font-weight:700;font-size:1rem;color:#fff" id="modalTitle">تأكيد العملية</div>
+                        <div style="font-size:.85rem;color:rgba(255,255,255,.85)" id="modalMsg"></div>
+                    </div>
+                </div>
+                <div style="padding:1.25rem 1.5rem;display:flex;gap:.75rem;justify-content:flex-end">
+                    <button onclick="closeConfirm()" style="background:#f1f5f9;color:#475569;border:none;border-radius:8px;padding:.6rem 1.4rem;font-family:inherit;font-size:.95rem;font-weight:600;cursor:pointer">
+                        إلغاء
+                    </button>
+                    <button id="modalConfirmBtn" style="border:none;border-radius:8px;padding:.6rem 1.4rem;font-family:inherit;font-size:.95rem;font-weight:600;cursor:pointer;color:#fff">
+                        تأكيد
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Request Meta -->
         <div class="card mt-3">
             <div class="card-body" style="font-size:.82rem">
@@ -258,3 +286,42 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+<style>
+    @@keyframes fadeIn { from { opacity:0; transform:scale(.95) } to { opacity:1; transform:scale(1) } }
+</style>
+<script>
+    var _pendingAction = null;
+    function showConfirm(msg, action, type) {
+        _pendingAction = action;
+        var colors = { success: '#1a5c38', danger: '#dc2626' };
+        var icons  = { success: '✓', danger: '✕' };
+        var titles = { success: 'تأكيد القبول', danger: 'تأكيد الرفض' };
+        var c = colors[type] || '#1a5c38';
+        document.getElementById('modalHeader').style.background = c;
+        document.getElementById('modalIcon').style.background = 'rgba(255,255,255,0.2)';
+        document.getElementById('modalIcon').style.color = '#fff';
+        document.getElementById('modalIcon').innerText = icons[type];
+        document.getElementById('modalTitle').innerText = titles[type];
+        document.getElementById('modalMsg').innerText = msg;
+        document.getElementById('modalConfirmBtn').style.background = c;
+        document.getElementById('confirmModal').style.display = 'flex';
+    }
+    function closeConfirm() {
+        document.getElementById('confirmModal').style.display = 'none';
+        _pendingAction = null;
+    }
+    document.getElementById('modalConfirmBtn').addEventListener('click', function () {
+        if (_pendingAction === 'approve') {
+            document.querySelector('form[action*="ApproveRequest"]').submit();
+        } else if (_pendingAction === 'reject') {
+            document.querySelector('form[action*="RejectRequest"]').submit();
+        }
+        closeConfirm();
+    });
+    document.getElementById('confirmModal').addEventListener('click', function(e) {
+        if (e.target === this) closeConfirm();
+    });
+</script>
+}

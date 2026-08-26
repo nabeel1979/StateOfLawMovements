@@ -54,15 +54,15 @@
                                 <a asp-action="MovementManagers" asp-route-movementId="@m.Id" class="btn btn-outline-info btn-sm" title="المسؤولون">
                                     <i class="fas fa-user-shield"></i>
                                 </a>
-                                <form method="post" asp-action="ToggleMovement" asp-route-id="@m.Id" class="d-inline">
+                                <form method="post" asp-action="ToggleMovement" asp-route-id="@m.Id" class="d-inline"
+                                      data-confirm="@(m.IsActive ? "هل تريد تعطيل الحركة؟" : "هل تريد تفعيل الحركة؟")" data-confirm-type="warning">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="btn btn-sm @(m.IsActive ? "btn-outline-warning" : "btn-outline-success")" 
-                                            title="@(m.IsActive ? "تعطيل" : "تفعيل")"
-                                            onclick="return confirm('@(m.IsActive ? "هل تريد تعطيل الحركة؟" : "هل تريد تفعيل الحركة؟")')">
+                                            title="@(m.IsActive ? "تعطيل" : "تفعيل")">
                                         <i class="fas @(m.IsActive ? "fa-ban" : "fa-check")"></i>
                                     </button>
                                 </form>
-                                <a href="/join/@m.PublicToken" target="_blank" class="btn btn-outline-success btn-sm" title="رابط الانضمام">
+                                <a href="http://form.gcc.iq/join/@m.PublicToken" target="_blank" class="btn btn-outline-success btn-sm" title="رابط الانضمام">
                                     <i class="fas fa-link"></i>
                                 </a>
                             </div>

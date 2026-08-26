@@ -29,6 +29,15 @@ public class User
 
     public bool IsActive { get; set; } = true;
 
+    /// <summary>إجبار تغيير كلمة المرور عند أول دخول أو بعد الإعادة</summary>
+    public bool MustChangePassword { get; set; } = false;
+
+    /// <summary>رمز إعادة تعيين كلمة المرور</summary>
+    [MaxLength(200)]
+    public string? PasswordResetToken { get; set; }
+
+    public DateTime? PasswordResetExpiry { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? LastLoginAt { get; set; }

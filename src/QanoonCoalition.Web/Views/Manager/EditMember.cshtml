@@ -42,7 +42,9 @@
                              border-radius:8px;overflow:hidden;flex-shrink:0;background:#f9fdf9">
                             @if (!string.IsNullOrEmpty(Model.PhotoPath))
                             {
-                                <img src="@Model.PhotoPath" style="width:100%;height:100%;object-fit:cover"/>
+                                <img src="@Model.PhotoPath" data-zoom="@Model.PhotoPath"
+                                     data-zoom-title="@Model.FullName" title="اضغط لتكبير الصورة"
+                                     style="width:100%;height:100%;object-fit:cover;cursor:zoom-in"/>
                             }
                             else
                             {
@@ -52,9 +54,10 @@
                             }
                         </div>
                         <div class="flex-grow-1">
-                            <label class="form-label mb-1">تغيير الصورة <small class="text-muted">(JPG/PNG/WEBP، حد أقصى 3MB)</small></label>
+                            <label class="form-label mb-1">تغيير الصورة <small class="text-muted">(@MemberPhoto.Hint)</small></label>
                             <input type="file" name="photo" class="form-control mb-2"
-                                   accept=".jpg,.jpeg,.png,.webp" onchange="previewPhoto(this)"/>
+                                   accept="@MemberPhoto.Accept" onchange="previewPhoto(this)"/>
+                            <div id="photoError" class="text-danger small mb-2" style="display:none"></div>
                             @if (!string.IsNullOrEmpty(Model.PhotoPath))
                             {
                                 <div class="form-check">
@@ -100,7 +103,7 @@
                     <label class="form-label">المحافظة</label>
                     <select name="Province" class="form-select">
                         <option value="">— اختر —</option>
-                        @foreach (var p in new[]{"بغداد","البصرة","نينوى","أربيل","النجف","كربلاء","الأنبار","ديالى","صلاح الدين","واسط","ميسان","ذي قار","المثنى","القادسية","بابل","كركوك","السليمانية","دهوك"})
+                        @foreach (var p in (List<string>)(ViewBag.Provinces ?? new List<string>()))
                         {
                             <option value="@p" selected="@(Model.Province == p)">@p</option>
                         }
@@ -207,22 +210,48 @@
 
     </div>
 
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 align-items-center">
         <button type="submit" class="btn btn-primary px-5">
             <i class="fas fa-save me-2"></i> حفظ التعديلات
         </button>
         <a asp-action="Members" class="btn btn-outline-secondary">إلغاء</a>
+        <!-- يُرسل النموذج المنفصل أدناه: النماذج المتداخلة غير صحيحة في HTML -->
+        <button type="submit" form="deleteMemberForm" class="btn btn-outline-danger ms-auto">
+            <i class="fas fa-trash me-2"></i> حذف العضو
+        </button>
     </div>
+</form>
+
+<form asp-action="DeleteMember" method="post" id="deleteMemberForm" class="d-none"
+      data-confirm="سيتم حذف العضو &quot;@Model.FullName&quot; نهائياً مع صورته وبياناته. لا يمكن التراجع عن هذه العملية."
+      data-confirm-type="danger">
+    <input type="hidden" name="id" value="@Model.Id"/>
 </form>
 <script>
 function previewPhoto(input) {
-    if (input.files && input.files[0]) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('photoPreview').innerHTML =
-                '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover"/>';
-        };
-        reader.readAsDataURL(input.files[0]);
+    var err = document.getElementById('photoError');
+    err.style.display = 'none';
+    if (!input.files || !input.files[0]) return;
+    var file = input.files[0];
+
+    if (!/\.(jpg|jpeg|png)$/i.test(file.name)) {
+        err.textContent = 'صيغة الصورة غير مدعومة. الصيغ المقبولة: JPG أو PNG فقط';
+        err.style.display = '';
+        input.value = '';
+        return;
     }
+    if (file.size > 3 * 1024 * 1024) {
+        err.textContent = 'حجم الصورة يجب أن لا يتجاوز 3MB';
+        err.style.display = '';
+        input.value = '';
+        return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('photoPreview').innerHTML =
+            '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover"/>';
+    };
+    reader.readAsDataURL(file);
 }
 </script>

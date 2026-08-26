@@ -15,25 +15,17 @@ public class MemberService : IMemberService
         _serial = serial;
     }
 
-    public async Task<(List<Member> Items, int Total)> SearchAsync(int? movementId, string? query,
-        string? searchBy, int page, int pageSize)
+    public async Task<(List<Member> Items, int Total)> SearchAsync(int? movementId,
+        List<MemberFilter>? filters, FilterMatch match, int page, int pageSize)
     {
         var q = _db.Members.Include(m => m.Movement).AsQueryable();
 
         if (movementId.HasValue)
             q = q.Where(m => m.MovementId == movementId);
 
-        if (!string.IsNullOrWhiteSpace(query))
-        {
-            query = query.Trim();
-            q = searchBy switch
-            {
-                "serial" => q.Where(m => m.SerialNumber.Contains(query)),
-                "phone"  => q.Where(m => m.Phone.Contains(query)),
-                "email"  => q.Where(m => m.Email != null && m.Email.Contains(query)),
-                _        => q.Where(m => m.FullName.Contains(query))
-            };
-        }
+        var predicate = MemberFilterBuilder.Build(filters, match);
+        if (predicate != null)
+            q = q.Where(predicate);
 
         var total = await q.CountAsync();
         var items = await q.OrderBy(m => m.FullName)
@@ -62,6 +54,16 @@ public class MemberService : IMemberService
     {
         await ValidateUniquenessAsync(member.FullName, member.Phone, member.Email, member.Id);
         _db.Members.Update(member);
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(int id)
+    {
+        var member = await _db.Members.FirstOrDefaultAsync(m => m.Id == id);
+        if (member == null) return;
+
+        // طلب الانضمام يبقى كما هو: المفتاح الأجنبي على العضو لا على الطلب
+        _db.Members.Remove(member);
         await _db.SaveChangesAsync();
     }
 

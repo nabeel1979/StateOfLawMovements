@@ -57,23 +57,35 @@
 
             <!-- البريد (للعرض فقط) -->
             <div class="mb-3">
-                <label class="form-label">البريد الإلكتروني</label>
-                <input type="email" class="form-control" value="@Model.Email" disabled/>
-                <div class="form-text">لا يمكن تغيير البريد الإلكتروني</div>
+                <label class="form-label">البريد الإلكتروني <span class="text-danger">*</span></label>
+                <input type="email" name="email" class="form-control" value="@Model.Email" required dir="ltr"/>
             </div>
 
-            <!-- كلمة المرور الجديدة -->
+            <!-- إعادة توليد كلمة المرور -->
             <div class="mb-3">
-                <label class="form-label">كلمة المرور الجديدة <small class="text-muted">(اتركها فارغة إن لم تريد تغييرها)</small></label>
-                <input type="password" name="newPassword" class="form-control"
-                       minlength="8" placeholder="8 أحرف على الأقل"/>
+                <label class="form-label">إعادة تعيين كلمة المرور <small class="text-muted">(اتركها فارغة إن لم تريد تغييرها)</small></label>
+                <div class="input-group">
+                    <input type="text" name="newPassword" id="genPass" class="form-control" readonly
+                           minlength="8" dir="ltr"
+                           style="background:#f8f9fa;font-family:monospace"
+                           placeholder="اضغط على توليد لإعادة تعيين..."/>
+                    <button type="button" class="btn btn-outline-warning" onclick="generatePass()" title="توليد كلمة مرور جديدة">
+                        <i class="fas fa-sync-alt me-1"></i> توليد
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="clearPass()" title="إلغاء التغيير">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="form-text text-warning" id="passHint" style="display:none">
+                    <i class="fas fa-info-circle me-1"></i>
+                    سيُطلب من المسؤول تغيير هذه الكلمة عند أول دخول
+                </div>
             </div>
 
             <!-- الحالة -->
             <div class="mb-4">
                 <label class="form-label">الحالة</label>
                 <div class="form-check form-switch">
-                    <input type="hidden" name="isActive" value="false"/>
                     <input class="form-check-input" type="checkbox" name="isActive"
                            value="true" @(Model.IsActive ? "checked" : "") id="isActiveSwitch"/>
                     <label class="form-check-label" for="isActiveSwitch">
@@ -97,4 +109,16 @@
 document.querySelector('[name="isActive"][type="checkbox"]').addEventListener('change', function() {
     this.nextElementSibling.textContent = this.checked ? 'نشط' : 'معطل';
 });
+function generatePass() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@@#$%!';
+    let pass = '';
+    for (let i = 0; i < 10; i++)
+        pass += chars[Math.floor(Math.random() * chars.length)];
+    document.getElementById('genPass').value = pass;
+    document.getElementById('passHint').style.display = '';
+}
+function clearPass() {
+    document.getElementById('genPass').value = '';
+    document.getElementById('passHint').style.display = 'none';
+}
 </script>

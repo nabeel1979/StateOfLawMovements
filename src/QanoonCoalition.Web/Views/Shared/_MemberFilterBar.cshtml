@@ -1,0 +1,385 @@
+@using QanoonCoalition.Web.Models
+@using QanoonCoalition.Web.Services
+@{
+    // منشئ فلاتر متعدد الشروط. كل عناصر الفلترة داخل نموذج GET واحد،
+    // والتصدير وترقيم الصفحات يعيدان إرسال النموذج نفسه لتبقى النتائج متطابقة.
+    var filters      = ViewBag.Filters as List<MemberFilter> ?? new List<MemberFilter>();
+    var match        = ViewBag.Match is FilterMatch m ? m : FilterMatch.All;
+    var activeCount  = filters.Count(f => !f.IsEmpty);
+    var showMovement = ViewBag.Movements != null;
+    var movements    = ViewBag.Movements as List<Movement> ?? new List<Movement>();
+    var currentMove  = ViewBag.MovementId?.ToString();
+    var fields       = MemberFilterFields.All;
+    // خيارات الحقول المنسدلة (المحافظة/التحصيل/مجال الاستفادة) مفتاحها هو مفتاح الحقل
+    var choices      = ViewBag.FilterOptions as Dictionary<string, List<string>> ?? new Dictionary<string, List<string>>();
+
+    List<string> OptionsFor(string key) =>
+        choices.TryGetValue(key, out var list) ? list : new List<string>();
+}
+
+<form method="get" id="mfForm" class="mf-wrap">
+    <input type="hidden" name="page" id="mfPage" value="1"/>
+
+    <div class="mf-toolbar">
+        <button type="button" class="mf-btn" id="mfToggle">
+            <i class="fas fa-filter"></i>
+            <span>الفلاتر</span>
+            @if (activeCount > 0)
+            {
+                <span class="mf-count">@activeCount</span>
+            }
+            <i class="fas fa-chevron-down mf-caret"></i>
+        </button>
+
+        @if (showMovement)
+        {
+            <select name="movementId" class="mf-select mf-movement" onchange="document.getElementById('mfForm').submit()">
+                <option value="">جميع الحركات</option>
+                @foreach (var mv in movements)
+                {
+                    <option value="@mv.Id" selected="@(currentMove == mv.Id.ToString())">@mv.Name</option>
+                }
+            </select>
+        }
+
+        @if (activeCount > 0)
+        {
+            <div class="mf-chips">
+                @foreach (var f in filters.Where(x => !x.IsEmpty))
+                {
+                    var fld = MemberFilterFields.Find(f.Field);
+                    var ops = fld != null ? MemberFilterFields.OperatorsFor(fld.Kind) : MemberFilterFields.TextOperators;
+                    var opLabel = f.Op != null && ops.ContainsKey(f.Op) ? ops[f.Op] : f.Op;
+                    var valLabel = f.Op is "empty" or "notempty"
+                        ? ""
+                        : (fld?.Kind == MemberFilterKind.Gender
+                            ? (f.Val == "1" ? "ذكر" : f.Val == "2" ? "أنثى" : f.Val)
+                            : f.Val);
+                    <span class="mf-chip">
+                        <strong>@(fld?.Label ?? f.Field)</strong>
+                        <span class="mf-chip-op">@opLabel</span>
+                        @if (!string.IsNullOrEmpty(valLabel))
+                        {
+                            <span>@valLabel</span>
+                        }
+                    </span>
+                }
+                <a href="@Url.Action("Members", new { movementId = currentMove })" class="mf-clear">
+                    <i class="fas fa-times"></i> مسح الكل
+                </a>
+            </div>
+        }
+
+        <div class="mf-toolbar-end">
+            <button type="submit" class="mf-btn mf-btn-export" formaction="@Url.Action("ExportMembers")">
+                <i class="fas fa-file-excel"></i> تصدير Excel
+            </button>
+            @if (ViewBag.ShowAddMember == true)
+            {
+                <a href="@Url.Action("AddMember")" class="mf-btn mf-btn-primary">
+                    <i class="fas fa-user-plus"></i> إضافة عضو
+                </a>
+            }
+        </div>
+    </div>
+
+    <div class="mf-panel" id="mfPanel">
+        <div class="mf-panel-head">
+            <span><i class="fas fa-sliders-h"></i> الفلاتر</span>
+            <button type="button" class="mf-x" id="mfClose" aria-label="إغلاق"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="mf-match">
+            <span>مطابقة</span>
+            <select name="match" class="mf-select">
+                <option value="All" selected="@(match == FilterMatch.All)">كل الشروط</option>
+                <option value="Any" selected="@(match == FilterMatch.Any)">أي شرط</option>
+            </select>
+        </div>
+
+        <div id="mfRows">
+            @for (var i = 0; i < filters.Count; i++)
+            {
+                var f = filters[i];
+                var fld = MemberFilterFields.Find(f.Field) ?? fields[0];
+                var ops = MemberFilterFields.OperatorsFor(fld.Kind);
+                var needsValue = f.Op is not ("empty" or "notempty");
+                <div class="mf-row">
+                    <select name="filters[@i].Field" class="mf-select mf-field">
+                        @foreach (var opt in fields)
+                        {
+                            <option value="@opt.Key" data-kind="@opt.Kind" selected="@(opt.Key == fld.Key)">@opt.Label</option>
+                        }
+                    </select>
+
+                    <select name="filters[@i].Op" class="mf-select mf-op">
+                        @foreach (var op in ops)
+                        {
+                            <option value="@op.Key" selected="@(op.Key == f.Op)">@op.Value</option>
+                        }
+                    </select>
+
+                    <span class="mf-value">
+                        @if (fld.Kind == MemberFilterKind.Gender)
+                        {
+                            <select name="filters[@i].Val" class="mf-select" style="@(needsValue ? "" : "display:none")">
+                                <option value="1" selected="@(f.Val == "1")">ذكر</option>
+                                <option value="2" selected="@(f.Val == "2")">أنثى</option>
+                            </select>
+                        }
+                        else if (fld.Kind == MemberFilterKind.Choice)
+                        {
+                            var opts = OptionsFor(fld.Key);
+                            <select name="filters[@i].Val" class="mf-select" style="@(needsValue ? "" : "display:none")">
+                                <option value="">— اختر —</option>
+                                @foreach (var opt in opts)
+                                {
+                                    <option value="@opt" selected="@(f.Val == opt)">@opt</option>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(f.Val) && !opts.Contains(f.Val))
+                                {
+                                    <option value="@f.Val" selected="selected">@f.Val</option>
+                                }
+                            </select>
+                        }
+                        else if (fld.Kind == MemberFilterKind.Date)
+                        {
+                            <input type="date" name="filters[@i].Val" class="mf-input" value="@f.Val"
+                                   style="@(needsValue ? "" : "display:none")"/>
+                        }
+                        else
+                        {
+                            <input type="text" name="filters[@i].Val" class="mf-input" value="@f.Val"
+                                   placeholder="القيمة" style="@(needsValue ? "" : "display:none")"/>
+                        }
+                    </span>
+
+                    <button type="button" class="mf-trash" title="حذف الشرط"><i class="fas fa-trash-alt"></i></button>
+                </div>
+            }
+        </div>
+
+        <button type="button" class="mf-add" id="mfAdd"><i class="fas fa-plus"></i> إضافة فلتر</button>
+
+        <div class="mf-panel-foot">
+            <span class="mf-hint">اضغط Enter للتطبيق</span>
+            <button type="submit" class="mf-apply">تطبيق</button>
+        </div>
+    </div>
+</form>
+
+<template id="mfRowTemplate">
+    <div class="mf-row">
+        <select class="mf-select mf-field">
+            @foreach (var opt in fields)
+            {
+                <option value="@opt.Key" data-kind="@opt.Kind">@opt.Label</option>
+            }
+        </select>
+        <select class="mf-select mf-op"></select>
+        <span class="mf-value"></span>
+        <button type="button" class="mf-trash" title="حذف الشرط"><i class="fas fa-trash-alt"></i></button>
+    </div>
+</template>
+
+<script>
+(function () {
+    var OPS = {
+        Text:   @Html.Raw(System.Text.Json.JsonSerializer.Serialize(MemberFilterFields.TextOperators)),
+        Date:   @Html.Raw(System.Text.Json.JsonSerializer.Serialize(MemberFilterFields.DateOperators)),
+        Gender: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(MemberFilterFields.GenderOperators)),
+        Choice: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(MemberFilterFields.ChoiceOperators))
+    };
+
+    // قوائم القيم الجاهزة لكل حقل منسدل
+    var CHOICES = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(choices));
+
+    var form   = document.getElementById('mfForm');
+    var panel  = document.getElementById('mfPanel');
+    var rows   = document.getElementById('mfRows');
+    var tpl    = document.getElementById('mfRowTemplate');
+    var addBtn = document.getElementById('mfAdd');
+
+    var FIELD_COUNT = tpl.content.firstElementChild.querySelectorAll('.mf-field option').length;
+
+    // اللوحة تبدأ مغلقة دائماً بعد التطبيق؛ الشروط محفوظة في الرابط
+    // وتظهر ملخّصاً في الشرائح، وتُعاد بناؤها كما هي عند فتح اللوحة مجدداً.
+    document.getElementById('mfToggle').addEventListener('click', function () {
+        panel.classList.toggle('open');
+    });
+    document.getElementById('mfClose').addEventListener('click', function () {
+        panel.classList.remove('open');
+    });
+
+    function kindOf(fieldSelect) {
+        var opt = fieldSelect.options[fieldSelect.selectedIndex];
+        return (opt && opt.getAttribute('data-kind')) || 'Text';
+    }
+
+    function valueEl(row) {
+        var holder = row.querySelector('.mf-value');
+        return holder ? holder.firstElementChild : null;
+    }
+
+    function makeSelect(pairs) {
+        var el = document.createElement('select');
+        el.className = 'mf-select';
+        pairs.forEach(function (pair) {
+            var o = document.createElement('option');
+            o.value = pair[0]; o.textContent = pair[1];
+            el.appendChild(o);
+        });
+        return el;
+    }
+
+    // حقل القيمة يتبع نوع الحقل المختار: نص، تاريخ، أو قائمة منسدلة بقيمه الجاهزة
+    function buildValue(row, kind, current) {
+        var holder = row.querySelector('.mf-value');
+        var op = row.querySelector('.mf-op').value;
+        var needsValue = op !== 'empty' && op !== 'notempty';
+
+        var el;
+        if (kind === 'Gender') {
+            el = makeSelect([['1', 'ذكر'], ['2', 'أنثى']]);
+        } else if (kind === 'Choice') {
+            var list = CHOICES[row.querySelector('.mf-field').value] || [];
+            el = makeSelect([['', '— اختر —']].concat(list.map(function (v) { return [v, v]; })));
+        } else {
+            el = document.createElement('input');
+            el.type = (kind === 'Date') ? 'date' : 'text';
+            el.className = 'mf-input';
+            if (kind !== 'Date') el.placeholder = 'القيمة';
+        }
+        if (current) el.value = current;
+        if (!needsValue) el.style.display = 'none';
+
+        holder.innerHTML = '';
+        holder.appendChild(el);
+    }
+
+    function fillOps(row, kind, current) {
+        var sel = row.querySelector('.mf-op');
+        var map = OPS[kind] || OPS.Text;
+        sel.innerHTML = '';
+        Object.keys(map).forEach(function (key) {
+            var o = document.createElement('option');
+            o.value = key; o.textContent = map[key];
+            if (key === current) o.selected = true;
+            sel.appendChild(o);
+        });
+    }
+
+    function usedFields() {
+        var taken = {};
+        Array.prototype.forEach.call(rows.children, function (row) {
+            var sel = row.querySelector('.mf-field');
+            if (sel) taken[sel.value] = true;
+        });
+        return taken;
+    }
+
+    // كل حقل يُستخدم مرة واحدة، فيُخفى من قوائم بقية الشروط
+    function refreshFieldOptions() {
+        var taken = usedFields();
+        Array.prototype.forEach.call(rows.children, function (row) {
+            var sel = row.querySelector('.mf-field');
+            if (!sel) return;
+            Array.prototype.forEach.call(sel.options, function (o) {
+                var hide = taken[o.value] === true && o.value !== sel.value;
+                o.hidden = hide;
+                o.disabled = hide;
+            });
+        });
+        addBtn.disabled = rows.children.length >= FIELD_COUNT;
+    }
+
+    function firstFreeField() {
+        var taken = usedFields();
+        var all = tpl.content.firstElementChild.querySelectorAll('.mf-field option');
+        for (var i = 0; i < all.length; i++) {
+            if (!taken[all[i].value]) return all[i].value;
+        }
+        return null;
+    }
+
+    // ASP.NET يتوقف عند أول فهرس مفقود، فنعيد الترقيم بعد كل تغيير
+    function reindex() {
+        Array.prototype.forEach.call(rows.children, function (row, i) {
+            var prefix = 'filters[' + i + '].';
+            var field  = row.querySelector('.mf-field');
+            var op     = row.querySelector('.mf-op');
+            var val    = valueEl(row);
+            if (field) field.name = prefix + 'Field';
+            if (op)    op.name    = prefix + 'Op';
+            if (val)   val.name   = prefix + 'Val';
+        });
+        rows.querySelectorAll('.mf-trash').forEach(function (b) {
+            b.disabled = rows.children.length === 1;
+        });
+    }
+
+    rows.addEventListener('change', function (e) {
+        var row = e.target.closest('.mf-row');
+        if (!row) return;
+
+        if (e.target.classList.contains('mf-field')) {
+            var kind = kindOf(e.target);
+            fillOps(row, kind, null);
+            buildValue(row, kind, '');
+            reindex();
+            refreshFieldOptions();
+        } else if (e.target.classList.contains('mf-op')) {
+            var valEl = valueEl(row);
+            if (valEl) {
+                var needsValue = e.target.value !== 'empty' && e.target.value !== 'notempty';
+                valEl.style.display = needsValue ? '' : 'none';
+                if (!needsValue) valEl.value = '';
+            }
+        }
+    });
+
+    rows.addEventListener('click', function (e) {
+        var btn = e.target.closest('.mf-trash');
+        if (!btn || btn.disabled) return;
+        btn.closest('.mf-row').remove();
+        reindex();
+        refreshFieldOptions();
+    });
+
+    addBtn.addEventListener('click', function () {
+        var free = firstFreeField();
+        if (!free) return;
+
+        var row = tpl.content.firstElementChild.cloneNode(true);
+        rows.appendChild(row);
+
+        var fieldSel = row.querySelector('.mf-field');
+        fieldSel.value = free;
+        var kind = kindOf(fieldSel);
+        fillOps(row, kind, null);
+        buildValue(row, kind, '');
+        reindex();
+        refreshFieldOptions();
+
+        var el = valueEl(row);
+        if (el) el.focus();
+    });
+
+    // تطبيق فلترة جديدة يعيدنا للصفحة الأولى، أما التنقل بين الصفحات فيحفظ رقمها
+    var pageInput = document.getElementById('mfPage');
+    var keepPage = false;
+
+    form.addEventListener('submit', function () {
+        if (!keepPage) pageInput.value = '1';
+    });
+
+    window.mfGoToPage = function (p) {
+        keepPage = true;
+        pageInput.value = p;
+        form.submit();
+    };
+
+    reindex();
+    refreshFieldOptions();
+})();
+</script>

@@ -1,0 +1,153 @@
+@using QanoonCoalition.Web.Models
+@model List<QanoonCoalition.Web.Models.User>
+@{
+    ViewData["Title"] = "مستخدمو النظام";
+}
+
+<div class="page-header d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="mb-1"><i class="fas fa-users me-2" style="color:var(--primary)"></i> مستخدمو النظام</h4>
+        <p class="text-muted mb-0 small">المستخدمون العاديون بدون صلاحيات إدارية</p>
+    </div>
+    <a asp-action="CreateUser" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i> إضافة مستخدم
+    </a>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- بحث -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col">
+                <input type="text" name="search" class="form-control" value="@ViewBag.Search"
+                       placeholder="بحث بالاسم أو البريد الإلكتروني..."/>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="fas fa-search me-1"></i> بحث
+                </button>
+                @if (!string.IsNullOrEmpty(ViewBag.Search as string))
+                {
+                    <a asp-action="Users" class="btn btn-outline-secondary ms-1">مسح</a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        @if (!Model.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="fas fa-users fa-3x mb-3 opacity-25"></i>
+                <p>لا يوجد مستخدمون مضافون بعد</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>الاسم الكامل</th>
+                            <th>البريد الإلكتروني</th>
+                            <th>الحركة</th>
+                            <th>الحالة</th>
+                            <th>تاريخ الإنشاء</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var (user, i) in Model.Select((u, i) => (u, i + 1)))
+                        {
+                            <tr>
+                                <td class="text-muted small">@i</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+                                             background:@(user.Role == UserRole.Admin ? "var(--primary)" : "var(--primary-light)")">
+                                            <i class="fas @(user.Role == UserRole.Admin ? "fa-user-shield" : "fa-user")"
+                                               style="color:@(user.Role == UserRole.Admin ? "#fff" : "var(--primary)");font-size:.75rem"></i>
+                                        </div>
+                                        <div>
+                                            <span class="fw-600">@user.FullName</span>
+                                            @if (user.Role == UserRole.Admin)
+                                            {
+                                                <span class="badge ms-1" style="background:var(--primary);font-size:.65rem">مدير النظام</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td dir="ltr" class="text-muted small">@user.Email</td>
+                                <td>
+                                    @if (user.Role == UserRole.Admin)
+                                    {
+                                        <span class="text-muted small">—</span>
+                                    }
+                                    else if (user.Movement != null)
+                                    {
+                                        <span class="badge" style="background:var(--primary-light);color:var(--primary)">@user.Movement.Name</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (user.IsActive)
+                                    {
+                                        <span class="badge bg-success-subtle text-success">نشط</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger">معطل</span>
+                                    }
+                                    @if (user.MustChangePassword)
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning ms-1" title="بانتظار تغيير كلمة المرور">
+                                            <i class="fas fa-key"></i>
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-muted small">@user.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                                <td>
+                                    <a asp-action="EditUser" asp-route-id="@user.Id"
+                                       class="btn btn-sm btn-outline-primary" title="تعديل">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    @if (user.Role != UserRole.Admin)
+                                    {
+                                        <form asp-action="DeleteUser" asp-route-id="@user.Id" method="post" class="d-inline"
+                                              data-confirm="هل تريد حذف المستخدم «@user.FullName»؟" data-confirm-type="danger">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

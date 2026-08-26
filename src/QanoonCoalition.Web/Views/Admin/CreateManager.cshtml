@@ -42,13 +42,38 @@
                 <input type="email" name="email" class="form-control" required maxlength="200"/>
             </div>
             <div class="mb-4">
-                <label class="form-label">كلمة المرور <span class="text-danger">*</span></label>
-                <input type="password" name="password" class="form-control" required minlength="8"
-                       placeholder="8 أحرف على الأقل"/>
+                <label class="form-label">كلمة المرور المؤقتة <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <input type="text" name="password" id="genPass" class="form-control" required
+                           readonly placeholder="اضغط على زر التوليد..." dir="ltr"
+                           style="background:#f8f9fa;font-family:monospace;letter-spacing:.05em"/>
+                    <button type="button" class="btn btn-success" onclick="generatePass()" title="توليد كلمة مرور تلقائية">
+                        <i class="fas fa-sync-alt me-1"></i> توليد
+                    </button>
+                </div>
+                <div class="form-text text-warning">
+                    <i class="fas fa-info-circle me-1"></i>
+                    سيُطلب من المسؤول تغيير هذه الكلمة عند أول دخول
+                </div>
             </div>
-            <button type="submit" class="btn btn-primary px-5">
+            <button type="submit" class="btn btn-primary px-5" id="submitBtn" disabled>
                 <i class="fas fa-save me-2"></i> إضافة المسؤول
             </button>
         </form>
     </div>
 </div>
+
+@section Scripts {
+<script>
+function generatePass() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@@#$%!';
+    let pass = '';
+    for (let i = 0; i < 10; i++)
+        pass += chars[Math.floor(Math.random() * chars.length)];
+    document.getElementById('genPass').value = pass;
+    document.getElementById('submitBtn').disabled = false;
+}
+// توليد تلقائي عند فتح الصفحة
+window.addEventListener('DOMContentLoaded', generatePass);
+</script>
+}

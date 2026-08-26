@@ -64,10 +64,10 @@
                                 <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">@c.Value</td>
                                 <td style="font-size:.8rem;color:var(--secondary)">@(c.Description ?? "—")</td>
                                 <td>
-                                    <form method="post" asp-action="DeleteConstant" asp-route-id="@c.Id" class="d-inline">
+                                    <form method="post" asp-action="DeleteConstant" asp-route-id="@c.Id" class="d-inline"
+                                          data-confirm="هل تريد حذف هذا الثابت؟" data-confirm-type="danger">
                                         @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-outline-danger"
-                                                onclick="return confirm('هل تريد حذف هذا الثابت؟')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>

@@ -1,4 +1,5 @@
 @using QanoonCoalition.Web.Models
+@using QanoonCoalition.Web.Services
 @model JoinRequest
 @{
     ViewData["Title"] = "طلب الانضمام";
@@ -32,11 +33,22 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>طلب الانضمام - @movement.Name</title>
+    <title>استمارة الانضمام - @movement.Name - ائتلاف دولة القانون</title>
+    <!-- Open Graph -->
+    <meta property="og:title"       content="استمارة الانضمام — @movement.Name"/>
+    <meta property="og:description" content="انضم إلى @movement.Name التابعة لائتلاف دولة القانون. أملأ الاستمارة الآن."/>
+    <meta property="og:image"       content="https://stateoflawmovements.gcc.iq/images/logo.jpg"/>
+    <meta property="og:image:width"  content="500"/>
+    <meta property="og:image:height" content="500"/>
+    <meta property="og:type"        content="website"/>
+    <meta property="og:url"         content="http://form.gcc.iq/join/@movement.PublicToken"/>
+    <meta property="og:site_name"   content="ائتلاف دولة القانون"/>
+    <meta name="twitter:card"       content="summary_large_image"/>
+    <meta name="twitter:image"      content="https://stateoflawmovements.gcc.iq/images/logo.jpg"/>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="~/css/app.css"/>
+    <link rel="stylesheet" href="~/css/app.css" asp-append-version="true"/>
     <style>
         .wizard-tabs { display:flex; gap:0; border-radius:12px; overflow:hidden; margin-bottom:28px; background:#e8f5ee; }
         .wizard-tab  {
@@ -56,27 +68,27 @@
         .step-nav { display:flex; justify-content:space-between; align-items:center; margin-top:24px; padding-top:20px; border-top:1px solid #e9ecef; }
         .progress-text { font-size:.8rem; color:var(--secondary); }
 
-        .join-header-nav {
-            background:rgba(255,255,255,.12);
-            display:flex; align-items:center; justify-content:space-between;
-            padding:10px 24px; font-size:.82rem;
+        /* ─── Responsive Join Form ─── */
+        @@media (max-width: 768px) {
+            .wizard-tabs { border-radius:8px; margin-bottom:18px; }
+            .wizard-tab  { padding:8px 4px; font-size:.68rem; }
+            .wizard-tab .tab-icon { font-size:1rem; }
+            .wizard-tab span:not(.tab-icon) { display:none; }   /* إخفاء النص، إبقاء الأيقونة */
+            .join-form-card { padding:16px 12px; border-radius:10px; }
+            .join-form-container { padding:0 8px 24px; margin-top:-12px; }
+            .step-nav .btn { padding:.4rem .9rem; font-size:.82rem; }
         }
-        .join-header-nav a { color:rgba(255,255,255,.85); text-decoration:none; }
-        .join-header-nav a:hover { color:#fff; }
+        @@media (max-width: 480px) {
+            .wizard-tab { padding:6px 2px; }
+            .row.g-3 > [class*="col-md"] { flex:0 0 100%; max-width:100%; }
+        }
     </style>
 </head>
 <body class="public-join">
 
 <!-- Hero -->
 <div class="join-hero">
-    <!-- Navigation bar inside hero -->
-    <div class="join-header-nav">
-        <a href="/join/@movement.PublicToken">
-            <i class="fas fa-landmark me-1"></i> @movement.Name
-        </a>
-    </div>
-
-    <div class="container py-3">
+    <div class="container py-2">
         <div class="movement-logo" style="background:transparent;border:none;margin-bottom:8px">
             <img src="/images/logo.jpg" alt="ائتلاف دولة القانون"
                  style="width:90px;height:90px;object-fit:cover;border-radius:50%;
@@ -172,7 +184,8 @@
             </button>
         </div>
 
-        <form method="post" asp-controller="Public" asp-action="Join" asp-route-token="@movement.PublicToken" id="joinForm" novalidate>
+        <form method="post" asp-controller="Public" asp-action="Join" asp-route-token="@movement.PublicToken"
+              id="joinForm" novalidate enctype="multipart/form-data">
             @Html.AntiForgeryToken()
 
             <!-- ═══ Tab 0: البيانات الشخصية ══════════════════════════════ -->
@@ -236,6 +249,30 @@
                     }
                 </div>
                 </div>
+                <!-- رفع الصورة الشخصية -->
+                <div class="row g-3 mt-1">
+                    <div class="col-12">
+                        <label class="form-label">الصورة الشخصية <small class="text-muted">(اختياري — JPG أو PNG فقط، حد أقصى 3MB)</small></label>
+                        <div id="photoDropZone" style="border:2px dashed #c3e6cb;border-radius:12px;padding:1.5rem;text-align:center;cursor:pointer;background:#f9fffe;transition:border-color .2s;"
+                             onclick="document.getElementById('photoInput').click()"
+                             ondragover="event.preventDefault();this.style.borderColor='var(--primary)'"
+                             ondragleave="this.style.borderColor='#c3e6cb'"
+                             ondrop="handleDrop(event)">
+                            <div id="photoPreviewWrap" style="display:none;margin-bottom:.75rem;">
+                                <img id="photoPreview" src="" alt="الصورة" style="width:110px;height:130px;object-fit:cover;border-radius:8px;border:3px solid var(--primary);"/>
+                            </div>
+                            <div id="photoPlaceholder">
+                                <i class="fas fa-camera" style="font-size:2rem;color:#aaa;margin-bottom:.5rem;display:block"></i>
+                                <span style="color:#888;font-size:.9rem">اضغط لرفع صورة أو اسحبها هنا</span>
+                            </div>
+                            <div id="photoName" style="display:none;color:var(--primary);font-size:.85rem;margin-top:.5rem"></div>
+                        </div>
+                        <input type="file" name="Photo" id="photoInput" accept="@MemberPhoto.Accept"
+                               style="display:none" onchange="previewPhoto(this)"/>
+                        <div id="photoError" class="text-danger small mt-1" style="display:none"></div>
+                    </div>
+                </div>
+
                 <div class="step-nav">
                     <span class="progress-text">الخطوة 1 من 6</span>
                     <button type="button" class="btn btn-primary" onclick="goTab(1)">
@@ -254,7 +291,7 @@
                         <label class="form-label">المحافظة</label>
                         <select name="Province" class="form-select" id="provinceSelect">
                             <option value="">— اختر المحافظة —</option>
-                            @foreach (var p in new[]{"بغداد","البصرة","نينوى","أربيل","النجف","كربلاء","الأنبار","ديالى","صلاح الدين","واسط","ميسان","ذي قار","المثنى","القادسية","بابل","كركوك","السليمانية","دهوك"})
+                            @foreach (var p in (List<string>)(ViewBag.Provinces ?? new List<string>()))
                             {
                                 <option value="@p" selected="@(Model.Province == p)">@p</option>
                             }
@@ -539,6 +576,56 @@ function goTab(idx) {
 
 // Initialize
 goTab(currentTab);
+
+// ─── Photo Upload ────────────────────────────────
+function previewPhoto(input) {
+    var err = document.getElementById('photoError');
+    err.style.display = 'none';
+    if (!input.files || !input.files[0]) return;
+    var file = input.files[0];
+
+    function reject(msg) {
+        err.textContent = msg;
+        err.style.display = '';
+        input.value = '';
+        document.getElementById('photoPreviewWrap').style.display = 'none';
+        document.getElementById('photoPlaceholder').style.display = '';
+        document.getElementById('photoName').style.display = 'none';
+        document.getElementById('photoDropZone').style.borderColor = '#c3e6cb';
+    }
+
+    // سمة accept تُقيّد نافذة الاختيار فقط، والسحب والإفلات يتجاوزها
+    if (!/\.(jpg|jpeg|png)$/i.test(file.name)) {
+        reject('صيغة الصورة غير مدعومة. الصيغ المقبولة: JPG أو PNG فقط');
+        return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+        reject('حجم الصورة يجب أن لا يتجاوز 3MB');
+        return;
+    }
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('photoPreview').src = e.target.result;
+        document.getElementById('photoPreviewWrap').style.display = '';
+        document.getElementById('photoPlaceholder').style.display = 'none';
+        document.getElementById('photoName').textContent = file.name;
+        document.getElementById('photoName').style.display = '';
+        document.getElementById('photoDropZone').style.borderColor = 'var(--primary)';
+    };
+    reader.readAsDataURL(file);
+}
+function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('photoDropZone').style.borderColor = '#c3e6cb';
+    var dt = e.dataTransfer;
+    if (dt.files && dt.files[0]) {
+        var input = document.getElementById('photoInput');
+        var dataTransfer = new DataTransfer();
+        dataTransfer.items.add(dt.files[0]);
+        input.files = dataTransfer.files;
+        previewPhoto(input);
+    }
+}
 </script>
 </body>
 </html>

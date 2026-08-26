@@ -21,20 +21,39 @@ public class PublicController : Controller
         _sysConst = sysConst;
     }
 
+    [HttpGet("movements")]
+    public async Task<IActionResult> Movements()
+    {
+        var host = Request.Host.Host?.ToLower() ?? "";
+        // فقط على دومين الاستمارة
+        if (host != "form.gcc.iq")
+            return NotFound();
+
+        var movements = await _movements.GetAllAsync(includeInactive: false);
+        return View(movements);
+    }
+
     [HttpGet("join/{token}")]
     public async Task<IActionResult> Join(string token)
     {
         var movement = await _movements.GetByTokenAsync(token);
         if (movement == null) return NotFound();
         ViewBag.Movement = movement;
+        await LoadFormLists();
+        return View(new JoinRequest { MovementId = movement.Id });
+    }
+
+    /// <summary>قوائم استمارة الانضمام المنسدلة، كلها من ثوابت النظام</summary>
+    private async Task LoadFormLists()
+    {
         ViewBag.EducationLevels = await _sysConst.GetValuesAsync(SysConst.EducationLevel);
         ViewBag.BenefitFields   = await _sysConst.GetValuesAsync(SysConst.BenefitField);
-        return View(new JoinRequest { MovementId = movement.Id });
+        ViewBag.Provinces       = await _sysConst.GetValuesAsync(SysConst.Province);
     }
 
     [HttpPost("join/{token}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Join(string token, JoinRequest model)
+    public async Task<IActionResult> Join(string token, JoinRequest model, IFormFile? Photo)
     {
         var movement = await _movements.GetByTokenAsync(token);
         if (movement == null) return NotFound();
@@ -55,8 +74,7 @@ public class PublicController : Controller
 
         if (!ModelState.IsValid)
         {
-            ViewBag.EducationLevels = await _sysConst.GetValuesAsync(SysConst.EducationLevel);
-            ViewBag.BenefitFields   = await _sysConst.GetValuesAsync(SysConst.BenefitField);
+            await LoadFormLists();
             return View(model);
         }
 
@@ -64,6 +82,27 @@ public class PublicController : Controller
         {
             model.MovementId = movement.Id;
             model.Phone = model.Phone!.Trim();
+
+            // حفظ الصورة إن وُجدت
+            if (Photo != null && Photo.Length > 0)
+            {
+                if (!MemberPhoto.IsValid(Photo, out var photoError))
+                {
+                    ModelState.AddModelError("Photo", photoError);
+                    ViewBag.Movement = movement;
+                    await LoadFormLists();
+                    return View(model);
+                }
+
+                var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "members");
+                Directory.CreateDirectory(uploadsDir);
+                var fileName = $"{Guid.NewGuid()}{MemberPhoto.SafeExtension(Photo.FileName)}";
+                var filePath = Path.Combine(uploadsDir, fileName);
+                using var stream = System.IO.File.Create(filePath);
+                await Photo.CopyToAsync(stream);
+                model.PhotoPath = $"/uploads/members/{fileName}";
+            }
+
             var request = await _requests.SubmitAsync(model);
 
             await _audit.LogAsync(AuditAction.SubmitRequest, "JoinRequest", request.Id.ToString(),
@@ -95,8 +134,7 @@ public class PublicController : Controller
             {
                 ModelState.AddModelError("", ex.Message);
             }
-            ViewBag.EducationLevels = await _sysConst.GetValuesAsync(SysConst.EducationLevel);
-            ViewBag.BenefitFields   = await _sysConst.GetValuesAsync(SysConst.BenefitField);
+            await LoadFormLists();
             return View(model);
         }
         catch (DbUpdateException dbEx)
@@ -116,15 +154,13 @@ public class PublicController : Controller
             else
                 ModelState.AddModelError("", $"خطأ في حفظ البيانات: {inner}");
 
-            ViewBag.EducationLevels = await _sysConst.GetValuesAsync(SysConst.EducationLevel);
-            ViewBag.BenefitFields   = await _sysConst.GetValuesAsync(SysConst.BenefitField);
+            await LoadFormLists();
             return View(model);
         }
         catch (Exception ex)
         {
             ModelState.AddModelError("", $"خطأ غير متوقع: {ex.Message}");
-            ViewBag.EducationLevels = await _sysConst.GetValuesAsync(SysConst.EducationLevel);
-            ViewBag.BenefitFields   = await _sysConst.GetValuesAsync(SysConst.BenefitField);
+            await LoadFormLists();
             return View(model);
         }
     }

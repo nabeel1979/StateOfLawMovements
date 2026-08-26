@@ -75,26 +75,32 @@
         <div class="card">
             <div class="card-body">
                 <div class="row g-3">
-                    @{ void Field(string label, string? value) { }  }
-                    <div class="col-md-6">
-                        <div class="detail-label">الاسم الكامل</div>
-                        <div class="detail-value fw-700" style="font-size:1.1rem">@Model.FullName</div>
+                    <div class="col-auto">
+                        @await Html.PartialAsync("_MemberPhoto", (Model.PhotoPath, Model.FullName))
                     </div>
-                    <div class="col-md-3">
-                        <div class="detail-label">الجنس</div>
-                        <div class="detail-value">@genderText</div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="detail-label">تاريخ الميلاد</div>
-                        <div class="detail-value">@(Model.BirthDate.HasValue ? Model.BirthDate.Value.ToString("dd/MM/yyyy") : "—")</div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="detail-label">رقم الهاتف</div>
-                        <div class="detail-value">@Model.Phone</div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="detail-label">البريد الإلكتروني</div>
-                        <div class="detail-value">@(string.IsNullOrEmpty(Model.Email) ? "—" : Model.Email)</div>
+                    <div class="col">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="detail-label">الاسم الكامل</div>
+                                <div class="detail-value fw-700" style="font-size:1.1rem">@Model.FullName</div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="detail-label">الجنس</div>
+                                <div class="detail-value">@genderText</div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="detail-label">تاريخ الميلاد</div>
+                                <div class="detail-value">@(Model.BirthDate.HasValue ? Model.BirthDate.Value.ToString("dd/MM/yyyy") : "—")</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="detail-label">رقم الهاتف</div>
+                                <div class="detail-value">@Model.Phone</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="detail-label">البريد الإلكتروني</div>
+                                <div class="detail-value">@(string.IsNullOrEmpty(Model.Email) ? "—" : Model.Email)</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

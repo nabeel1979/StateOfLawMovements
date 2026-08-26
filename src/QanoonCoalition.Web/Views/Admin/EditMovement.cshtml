@@ -3,6 +3,9 @@
 @{
     ViewData["Title"] = "تعديل الحركة";
 }
+@{
+    var govs = (List<string>)(ViewBag.Provinces ?? new List<string>());
+}
 
 <div class="page-header">
     <h1 class="page-title"><i class="fas fa-edit"></i> تعديل: @Model.Name</h1>
@@ -37,12 +40,22 @@
                     <input type="email" name="email" class="form-control" value="@Model.Email" maxlength="200"/>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">الموقع الإلكتروني</label>
-                    <input type="url" name="website" class="form-control" value="@Model.Website" maxlength="200"/>
+                    <label class="form-label">المحافظة</label>
+                    <select name="governorate" class="form-select">
+                        <option value="">— اختر المحافظة —</option>
+                        @foreach (var g in govs)
+                        {
+                            <option value="@g" selected="@(Model.Governorate == g)">@g</option>
+                        }
+                    </select>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">العنوان</label>
+                    <label class="form-label">العنوان التفصيلي</label>
                     <input type="text" name="address" class="form-control" value="@Model.Address" maxlength="500"/>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">الموقع الإلكتروني</label>
+                    <input type="url" name="website" class="form-control" value="@Model.Website" maxlength="200"/>
                 </div>
                 <div class="col-12">
                     <label class="form-label">الوصف</label>
