@@ -4,6 +4,7 @@
     var allStatuses = (IList<QanoonCoalition.Web.Models.CitizenRequestStatus>)ViewBag.Statuses;
 }
 
+<div id="screenContent">
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div>
         <h4 class="mb-0">
@@ -18,6 +19,9 @@
         </nav>
     </div>
     <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+            <i class="fas fa-print me-1"></i>طباعة
+        </button>
         <a asp-action="EditCitizenRequest" asp-route-id="@Model.Id"
            class="btn btn-warning btn-sm">
             <i class="fas fa-edit me-1"></i>تعديل
@@ -26,7 +30,7 @@
               onsubmit="return confirm('هل تريد حذف هذا الطلب نهائياً؟')">
             @Html.AntiForgeryToken()
             <input type="hidden" name="id" value="@Model.Id"/>
-            <button type="submit" class="btn btn-danger btn-sm">
+            <button type="submit" class="btn btn-danger btn-sm" data-no-loading>
                 <i class="fas fa-trash me-1"></i>حذف
             </button>
         </form>
@@ -128,56 +132,91 @@
             </div>
             @if (Model.Attachments.Any())
             {
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>اسم الملف</th>
-                                <th>نوع الوثيقة</th>
-                                <th>الحجم</th>
-                                <th>بواسطة</th>
-                                <th>التاريخ</th>
-                                <th class="text-center">تنزيل</th>
-                                <th class="text-center">حذف</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var att in Model.Attachments)
-                            {
-                                <tr>
-                                    <td>
-                                        <i class="fas fa-file me-1 text-muted"></i>@att.FileName
-                                    </td>
-                                    <td>
-                                        @if (att.DocumentType != null)
-                                        {
-                                            <span class="badge bg-secondary">@att.DocumentType.Name</span>
-                                        }
-                                    </td>
-                                    <td class="small text-muted">@((att.FileSize / 1024.0).ToString("F1")) KB</td>
-                                    <td class="small">@att.UploadedByUser.FullName</td>
-                                    <td class="small">@att.UploadedAt.ToLocalTime().ToString("dd/MM/yyyy")</td>
-                                    <td class="text-center">
-                                        <a href="@att.FilePath" target="_blank"
-                                           class="btn btn-sm btn-outline-primary" title="تنزيل">
-                                            <i class="fas fa-download"></i>
-                                        </a>
-                                    </td>
-                                    <td class="text-center">
-                                        <form asp-action="DeleteCitizenRequestAttachment" method="post"
-                                              onsubmit="return confirm('حذف المرفق؟')">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="attachmentId" value="@att.Id"/>
-                                            <input type="hidden" name="requestId" value="@Model.Id"/>
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                <div class="p-2">
+                    @foreach (var att in Model.Attachments)
+                    {
+                        var isImg = att.FileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+                                 || att.FileName.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
+                                 || att.FileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase);
+                        var isPdf  = att.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
+                        var isWord = att.FileName.EndsWith(".doc", StringComparison.OrdinalIgnoreCase)
+                                  || att.FileName.EndsWith(".docx", StringComparison.OrdinalIgnoreCase);
+                        var isXls  = att.FileName.EndsWith(".xls", StringComparison.OrdinalIgnoreCase)
+                                  || att.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase);
+                        var fileIcon = isPdf  ? "fas fa-file-pdf text-danger"
+                                     : isWord ? "fas fa-file-word text-primary"
+                                     : isXls  ? "fas fa-file-excel text-success"
+                                     : "fas fa-file text-secondary";
+                        var sizeStr = att.FileSize < 1048576
+                            ? $"{att.FileSize / 1024.0:F1} KB"
+                            : $"{att.FileSize / 1048576.0:F2} MB";
+                        <div class="d-flex align-items-center gap-3 p-2 mb-2 border rounded">
+                            <!-- معاينة / أيقونة -->
+                            <div class="flex-shrink-0">
+                                @if (isImg)
+                                {
+                                    <img src="@att.FilePath"
+                                         data-zoom="@att.FilePath"
+                                         data-zoom-title="@att.FileName"
+                                         style="width:64px;height:64px;object-fit:cover;border-radius:6px;cursor:zoom-in;border:2px solid #c8e6d5"
+                                         title="اضغط لتكبير الصورة"/>
+                                }
+                                else
+                                {
+                                    <div style="width:64px;height:64px;display:flex;align-items:center;justify-content:center;background:#f8f9fa;border-radius:6px;border:1px solid #dee2e6">
+                                        <i class="@fileIcon fa-2x"></i>
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- تفاصيل الملف -->
+                            <div class="flex-grow-1 min-width-0">
+                                <div class="fw-600 small text-truncate" title="@att.FileName">@att.FileName</div>
+                                <div class="mt-1">
+                                    <span class="badge @(att.DocumentType != null ? "bg-primary" : "bg-secondary") me-1">
+                                        <i class="fas fa-tag me-1"></i>@(att.DocumentType?.Name ?? "غير محدد")
+                                    </span>
+                                </div>
+                                <div class="text-muted mt-1" style="font-size:.78rem">
+                                    <i class="fas fa-weight-hanging me-1"></i>@sizeStr
+                                    &nbsp;·&nbsp;
+                                    <i class="fas fa-calendar me-1"></i>@att.UploadedAt.ToLocalTime().ToString("dd/MM/yyyy")
+                                    &nbsp;·&nbsp;
+                                    <i class="fas fa-user me-1"></i>@att.UploadedByUser.FullName
+                                </div>
+                            </div>
+
+                            <!-- أزرار الإجراءات -->
+                            <div class="flex-shrink-0 d-flex gap-1">
+                                @if (isImg)
+                                {
+                                    <button type="button"
+                                            data-zoom="@att.FilePath"
+                                            data-zoom-title="@att.FileName"
+                                            class="btn btn-sm btn-outline-success" title="عرض">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                }
+                                <a href="@att.FilePath" target="_blank"
+                                   class="btn btn-sm btn-outline-primary" title="فتح / تنزيل">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                                <a href="@att.FilePath" download="@att.FileName"
+                                   class="btn btn-sm btn-outline-secondary" title="تنزيل">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                                <form asp-action="DeleteCitizenRequestAttachment" method="post" style="display:inline"
+                                      onsubmit="return confirm('حذف المرفق؟')">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="attachmentId" value="@att.Id"/>
+                                    <input type="hidden" name="requestId" value="@Model.Id"/>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    }
                 </div>
             }
             else
@@ -320,7 +359,6 @@
         <div class="modal-content">
             <form asp-action="EditCitizenRequest" method="post" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
-                <!-- نرسل باقي بيانات الطلب الموجودة -->
                 <input type="hidden" name="Id" value="@Model.Id"/>
                 <input type="hidden" name="ApplicantName" value="@Model.ApplicantName"/>
                 <input type="hidden" name="ApplicantPhone" value="@Model.ApplicantPhone"/>
@@ -335,15 +373,15 @@
                     <div class="mb-3">
                         <label class="form-label">اختر الملف</label>
                         <input type="file" name="attachments" class="form-control"
-                               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls" required/>
+                               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls" required
+                               onchange="previewModalFile(this)"/>
+                        <div id="modalFilePreview" class="mt-2"></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">نوع الوثيقة</label>
                         <select name="docTypeIds" class="form-select">
                             <option value="">— اختر نوع الوثيقة —</option>
-                            @foreach (var dt in (IList<QanoonCoalition.Web.Models.DocumentType>)ViewBag.Statuses == null
-                                ? new List<QanoonCoalition.Web.Models.DocumentType>()
-                                : new List<QanoonCoalition.Web.Models.DocumentType>())
+                            @foreach (var dt in (IList<QanoonCoalition.Web.Models.DocumentType>)ViewBag.DocTypes)
                             {
                                 <option value="@dt.Id">@dt.Name</option>
                             }
@@ -352,23 +390,235 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="submit" class="btn btn-success">رفع الملف</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-upload me-1"></i>رفع الملف
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+</div><!-- /screenContent -->
+
+<!-- ══════════════════════ منطقة الطباعة (مخفية على الشاشة) ══════════════════════ -->
+<div id="printArea">
+    <!-- رأس الصفحة -->
+    <div class="print-header">
+        <div class="print-logo-wrap">
+            <img src="/images/logo.jpg" alt="شعار الائتلاف" class="print-logo"/>
+        </div>
+        <div class="print-org">
+            <div class="print-org-main">ائتلاف دولة القانون</div>
+            @if (!string.IsNullOrEmpty(ViewBag.MovementName as string))
+            {
+                <div class="print-org-movement">@ViewBag.MovementName</div>
+            }
+        </div>
+    </div>
+
+    <!-- عنوان الاستمارة + كود الطلب -->
+    <div class="print-title-block">
+        <div class="print-title">استمارة طلب مواطن</div>
+        <div class="print-code-inline">
+            <span class="print-code-label">كود الطلب:</span>
+            <span class="print-code-val">@Model.RequestCode</span>
+        </div>
+    </div>
+
+    <!-- القسم الأول: بيانات مقدم الطلب -->
+    <div class="print-section-title">أولاً: بيانات مقدم الطلب</div>
+    <table class="print-table">
+        <tr>
+            <th>الاسم الكامل</th>
+            <td colspan="3">@Model.ApplicantName</td>
+        </tr>
+        <tr>
+            <th>رقم الهاتف</th>
+            <td>@Model.ApplicantPhone</td>
+            <th>البريد الإلكتروني</th>
+            <td class="print-email-cell">@(string.IsNullOrEmpty(Model.ApplicantEmail) ? "—" : Model.ApplicantEmail)</td>
+        </tr>
+        @if (!string.IsNullOrEmpty(Model.ContactInformation))
+        {
+            <tr>
+                <th>معلومات اتصال إضافية</th>
+                <td colspan="3">@Model.ContactInformation</td>
+            </tr>
+        }
+    </table>
+
+    <!-- القسم الثاني: تفاصيل الطلب -->
+    <div class="print-section-title">ثانياً: تفاصيل الطلب</div>
+    <table class="print-table">
+        <tr>
+            <th>تاريخ تقديم الطلب</th>
+            <td>@Model.RequestDate.ToLocalTime().ToString("dd/MM/yyyy")</td>
+            <th>الحالة الحالية</th>
+            <td><strong>@Model.Status.Name</strong></td>
+        </tr>
+        <tr>
+            <th>موضوع الطلب</th>
+            <td colspan="3">@Model.RequestSubject</td>
+        </tr>
+        @if (Model.ReceivedByMember != null)
+        {
+            <tr>
+                <th>مستلم الطلب</th>
+                <td>@Model.ReceivedByMember.FullName</td>
+                <th>أضيف بواسطة</th>
+                <td>@Model.CreatedByUser.FullName</td>
+            </tr>
+        }
+        else
+        {
+            <tr>
+                <th>أضيف بواسطة</th>
+                <td colspan="3">@Model.CreatedByUser.FullName</td>
+            </tr>
+        }
+        <tr>
+            <th>الجهة الموجَّه إليها</th>
+            <td>@(Model.Destination?.Name ?? "—")</td>
+            <th>التفصيل</th>
+            <td>@(string.IsNullOrEmpty(Model.DestinationSubText) ? "—" : Model.DestinationSubText)</td>
+        </tr>
+        @if (Model.SentDate.HasValue || Model.AnswerDate.HasValue)
+        {
+            <tr>
+                @if (Model.SentDate.HasValue)
+                {
+                    <th>تاريخ الإرسال</th>
+                    <td>@Model.SentDate.Value.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                }
+                else
+                {
+                    <td colspan="2"></td>
+                }
+                @if (Model.AnswerDate.HasValue)
+                {
+                    <th>تاريخ الإجابة</th>
+                    <td>@Model.AnswerDate.Value.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                }
+                else
+                {
+                    <td colspan="2"></td>
+                }
+            </tr>
+        }
+    </table>
+
+    <!-- القسم الثالث: تفاصيل الطلب النصية -->
+    <div class="print-section-title">ثالثاً: محتوى الطلب</div>
+    <div class="print-text-box">@Model.RequestDetails</div>
+
+    <!-- التواقيع — صف واحد بثلاث خانات -->
+    <table class="print-sig-table">
+        <tr>
+            <td class="print-sig-cell">
+                <div class="print-sig-title">توقيع مقدم الطلب</div>
+                <div class="print-sig-name">@Model.ApplicantName</div>
+                <div class="print-sig-space"></div>
+                <div class="print-sig-line"></div>
+                <div class="print-sig-date">التاريخ: @Model.RequestDate.ToLocalTime().ToString("dd/MM/yyyy")</div>
+            </td>
+            <td class="print-sig-cell">
+                <div class="print-sig-title">توقيع مستلم الطلب</div>
+                <div class="print-sig-name">@(Model.ReceivedByMember?.FullName ?? "_______________")</div>
+                <div class="print-sig-space"></div>
+                <div class="print-sig-line"></div>
+                <div class="print-sig-date">التاريخ: ________________</div>
+            </td>
+            <td class="print-sig-cell">
+                <div class="print-sig-title">ختم الإدارة وتوقيعها</div>
+                <div class="print-sig-stamp-area"></div>
+                <div class="print-sig-line"></div>
+                <div class="print-sig-date">التاريخ: ________________</div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- باركود + تذييل -->
+    <div class="print-barcode-footer">
+        <div class="print-barcode-wrap">
+            <svg id="printBarcode"></svg>
+            <div class="print-barcode-text">@Model.RequestCode</div>
+        </div>
+        <div class="print-footer-text">
+            ائتلاف دولة القانون © @DateTime.Now.Year
+            &nbsp;|&nbsp; طُبع بتاريخ: @DateTime.Now.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+        </div>
+    </div>
+</div>
+
 @section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <script>
-var answerStatusNames = ['إجابة عنه'];
+// تهيئة الباركود عند تحميل الصفحة
+(function() {
+    try {
+        JsBarcode('#printBarcode', '@Model.RequestCode', {
+            format: 'CODE128',
+            width: 2,
+            height: 40,
+            displayValue: false,
+            margin: 0,
+            lineColor: '#1a7a3f'
+        });
+    } catch(e) {}
+
+@if (ViewBag.AutoPrint == true)
+{
+    <text>
+    // الطباعة تُستدعى بعد رسم الباركود وتحميل الشعار حتى لا تُطبع الاستمارة ناقصة
+    window.addEventListener('load', function () {
+        setTimeout(function () { window.print(); }, 300);
+    });
+    </text>
+}
+})();
 
 function toggleAnswerDate(statusId) {
     var sel = document.getElementById('newStatusSelect');
     var txt = sel.options[sel.selectedIndex].text.trim();
     var row = document.getElementById('answerDateRow');
-    row.style.display = answerStatusNames.includes(txt) ? '' : 'none';
+    row.style.display = (txt === 'إجابة عنه') ? '' : 'none';
 }
 toggleAnswerDate();
+
+function previewModalFile(input) {
+    var preview = document.getElementById('modalFilePreview');
+    var file = input.files[0];
+    if (!file) { preview.innerHTML = ''; return; }
+
+    var size = file.size < 1048576
+        ? (file.size / 1024).toFixed(1) + ' KB'
+        : (file.size / 1048576).toFixed(2) + ' MB';
+
+    var isImage = /\.(jpg|jpeg|png)$/i.test(file.name);
+    if (isImage) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML =
+                '<div class="d-flex align-items-center gap-2 p-2 border rounded">' +
+                  '<img src="' + e.target.result + '" style="height:60px;width:60px;object-fit:cover;border-radius:4px"/>' +
+                  '<div><div class="small fw-600">' + file.name + '</div>' +
+                  '<div class="small text-muted">' + size + '</div></div>' +
+                '</div>';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        var icon = /\.pdf$/i.test(file.name) ? 'fas fa-file-pdf text-danger'
+                 : /\.(doc|docx)$/i.test(file.name) ? 'fas fa-file-word text-primary'
+                 : /\.(xls|xlsx)$/i.test(file.name) ? 'fas fa-file-excel text-success'
+                 : 'fas fa-file text-secondary';
+        preview.innerHTML =
+            '<div class="d-flex align-items-center gap-2 p-2 border rounded">' +
+              '<i class="' + icon + ' fa-2x"></i>' +
+              '<div><div class="small fw-600">' + file.name + '</div>' +
+              '<div class="small text-muted">' + size + '</div></div>' +
+            '</div>';
+    }
+}
 </script>
 }

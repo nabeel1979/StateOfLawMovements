@@ -2,97 +2,30 @@
 @using QanoonCoalition.Web.Services
 @{
     ViewData["Title"] = "طلبات المواطنين";
-    var filter = (CitizenRequestFilter)ViewBag.Filter;
-    var statuses = (IList<QanoonCoalition.Web.Models.CitizenRequestStatus>)ViewBag.Statuses;
-    var destinations = (IList<QanoonCoalition.Web.Models.RequestDestination>)ViewBag.Destinations;
-    var docTypes = (IList<QanoonCoalition.Web.Models.DocumentType>)ViewBag.DocumentTypes;
-    dynamic members = ViewBag.Members;
     int page = ViewBag.Page, totalPages = ViewBag.TotalPages, total = ViewBag.Total;
 }
 
-<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <div>
-        <h4 class="mb-0"><i class="fas fa-file-alt me-2 text-primary"></i>طلبات المواطنين</h4>
-        <small class="text-muted">إجمالي: <strong>@total</strong> طلب</small>
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show mb-3">
+        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
-    <a asp-action="CreateCitizenRequest" class="btn btn-success">
-        <i class="fas fa-plus me-1"></i>إضافة طلب جديد
-    </a>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show mb-3">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="page-header mb-3">
+    <h4 class="mb-0"><i class="fas fa-file-alt me-2 text-primary"></i>طلبات المواطنين</h4>
+    <small class="text-muted">إجمالي: <strong>@total</strong> طلب</small>
 </div>
 
-<!-- فلاتر البحث -->
-<div class="card mb-3">
-    <div class="card-body pb-2">
-        <form method="get" id="filterForm">
-            <div class="row g-2 align-items-end">
-                <div class="col-md-4">
-                    <label class="form-label small mb-1">بحث</label>
-                    <input type="text" name="search" value="@filter.Search"
-                           placeholder="كود، اسم، هاتف، موضوع…"
-                           class="form-control form-control-sm"/>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small mb-1">الحالة</label>
-                    <select name="statusId" class="form-select form-select-sm">
-                        <option value="">الكل</option>
-                        @foreach (var s in statuses)
-                        {
-                            <option value="@s.Id" selected="@(filter.StatusId == s.Id)">@s.Name</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small mb-1">الجهة</label>
-                    <select name="destinationId" class="form-select form-select-sm">
-                        <option value="">الكل</option>
-                        @foreach (var d in destinations)
-                        {
-                            <option value="@d.Id" selected="@(filter.DestinationId == d.Id)">@d.Name</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small mb-1">مستلم الطلب</label>
-                    <select name="receivedByMemberId" class="form-select form-select-sm">
-                        <option value="">الكل</option>
-                        @foreach (var m in members)
-                        {
-                            <option value="@m.Id" selected="@(filter.ReceivedByMemberId == m.Id)">@m.FullName</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small mb-1">نوع الوثيقة</label>
-                    <select name="documentTypeId" class="form-select form-select-sm">
-                        <option value="">الكل</option>
-                        @foreach (var dt in docTypes)
-                        {
-                            <option value="@dt.Id" selected="@(filter.DocumentTypeId == dt.Id)">@dt.Name</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small mb-1">من تاريخ</label>
-                    <input type="date" name="fromDate" class="form-control form-control-sm"
-                           value="@(filter.FromDate?.ToString("yyyy-MM-dd"))"/>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small mb-1">إلى تاريخ</label>
-                    <input type="date" name="toDate" class="form-control form-control-sm"
-                           value="@(filter.ToDate?.ToString("yyyy-MM-dd"))"/>
-                </div>
-                <div class="col-md-2 d-flex gap-1">
-                    <button type="submit" class="btn btn-primary btn-sm flex-fill">
-                        <i class="fas fa-search"></i> بحث
-                    </button>
-                    <a asp-action="CitizenRequests" class="btn btn-outline-secondary btn-sm">
-                        <i class="fas fa-times"></i>
-                    </a>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
+@await Html.PartialAsync("_CitizenRequestFilterBar")
 
 <!-- الجدول -->
 @if (!Model.Any())
@@ -153,22 +86,34 @@ else
                                 }
                             </td>
                             <td class="text-center">
-                                <a asp-action="CitizenRequestDetails" asp-route-id="@r.Id"
-                                   class="btn btn-sm btn-outline-primary" title="تفاصيل">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a asp-action="EditCitizenRequest" asp-route-id="@r.Id"
-                                   class="btn btn-sm btn-outline-warning" title="تعديل">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form asp-action="DeleteCitizenRequest" method="post" style="display:inline"
-                                      onsubmit="return confirm('هل تريد حذف هذا الطلب؟')">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="id" value="@r.Id"/>
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
-                                        <i class="fas fa-trash"></i>
+                                <div class="dropup">
+                                    <button class="btn btn-sm btn-light border" type="button"
+                                            data-bs-toggle="dropdown" data-bs-display="static"
+                                            aria-expanded="false" title="إجراءات">
+                                        <i class="fas fa-ellipsis-v"></i>
                                     </button>
-                                </form>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow">
+                                        <li>
+                                            <a class="dropdown-item"
+                                               asp-action="CitizenRequestDetails" asp-route-id="@r.Id">
+                                                <i class="fas fa-eye text-primary me-2"></i>عرض
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item"
+                                               asp-action="EditCitizenRequest" asp-route-id="@r.Id">
+                                                <i class="fas fa-edit text-warning me-2"></i>تحرير
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item"
+                                               asp-action="CitizenRequestDetails" asp-route-id="@r.Id"
+                                               asp-route-print="1">
+                                                <i class="fas fa-print text-secondary me-2"></i>طباعة
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
                             </td>
                         </tr>
                     }
@@ -177,7 +122,7 @@ else
         </div>
     </div>
 
-    <!-- Pagination -->
+    <!-- Pagination — يعيد إرسال نموذج الفلترة لتبقى الشروط مطبَّقة -->
     @if (totalPages > 1)
     {
         <nav class="mt-3 d-flex justify-content-center">
@@ -185,12 +130,7 @@ else
                 @for (int p = 1; p <= totalPages; p++)
                 {
                     <li class="page-item @(p == page ? "active" : "")">
-                        <a class="page-link"
-                           asp-action="CitizenRequests"
-                           asp-route-page="@p"
-                           asp-route-search="@filter.Search"
-                           asp-route-statusId="@filter.StatusId"
-                           asp-route-destinationId="@filter.DestinationId">@p</a>
+                        <button type="button" class="page-link" onclick="mfGoToPage(@p)">@p</button>
                     </li>
                 }
             </ul>

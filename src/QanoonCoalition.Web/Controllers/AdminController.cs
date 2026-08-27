@@ -587,4 +587,30 @@ public class AdminController : Controller
         TempData["Success"] = $"تم حذف المستخدم \"{user.FullName}\"";
         return RedirectToAction(nameof(Users));
     }
+
+    // ─── تطبيق المهاجرات المعلّقة (مؤقت) ────────────────────────────────────
+    [HttpGet]
+    public IActionResult RunMigrations()
+    {
+        var result = new System.Text.StringBuilder();
+        try
+        {
+            var pending = _db.Database.GetPendingMigrations().ToList();
+            result.AppendLine($"المهاجرات المعلّقة: {pending.Count}");
+            foreach (var m in pending) result.AppendLine("  - " + m);
+
+            _db.Database.Migrate();
+            result.AppendLine("✓ تم تطبيق جميع المهاجرات بنجاح");
+
+            var applied = _db.Database.GetAppliedMigrations().ToList();
+            result.AppendLine($"إجمالي المهاجرات المطبّقة: {applied.Count}");
+            foreach (var m in applied) result.AppendLine("  ✓ " + m);
+        }
+        catch (Exception ex)
+        {
+            result.AppendLine("✗ خطأ: " + ex.Message);
+            result.AppendLine(ex.ToString());
+        }
+        return Content(result.ToString(), "text/plain; charset=utf-8");
+    }
 }

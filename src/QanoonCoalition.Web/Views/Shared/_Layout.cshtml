@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="utf-8" />
@@ -525,6 +525,36 @@ window.confirm = function(msg) {
         e.preventDefault();
         step(e.deltaY < 0 ? 1 : -1);
     }, { passive: false });
+})();
+</script>
+
+<!-- ══ مؤشر التحميل عند الإرسال ══════════════════════════════════════════ -->
+<script>
+(function () {
+    document.addEventListener('submit', function (e) {
+        // إذا أُلغي الإرسال (مثل confirm() أعاد false) لا نشغّل الـ Spinner
+        if (e.defaultPrevented) return;
+
+        var form = e.target;
+        // نختار أول زر submit غير معطَّل وغير مُعلَّم بـ data-no-loading
+        var btn = form.querySelector('button[type="submit"]:not([data-no-loading]):not(:disabled)');
+        if (!btn) return;
+
+        btn.disabled = true;
+        // نحفظ النص الأصلي لاستعادته عند الحاجة
+        btn.dataset.origHtml = btn.innerHTML;
+        btn.innerHTML =
+            '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' +
+            'جارٍ المعالجة…';
+
+        // استعادة تلقائية بعد 15 ثانية احتياطاً (لو فشل التحويل)
+        setTimeout(function () {
+            if (btn.dataset.origHtml) {
+                btn.innerHTML = btn.dataset.origHtml;
+                btn.disabled = false;
+            }
+        }, 15000);
+    });
 })();
 </script>
 </body>

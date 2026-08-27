@@ -4,6 +4,13 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $srcRoot     = Join-Path $projectRoot 'src\QanoonCoalition.Web'
 
+# بناء Release قبل النشر لضمان تجميع جميع الـ Views داخل الـ DLL
+Write-Output '--- building Release ---'
+Push-Location $srcRoot
+try { dotnet publish -c Release -o "bin\Release\net8.0" --nologo -v q }
+finally { Pop-Location }
+Write-Output 'build done'
+
 # اسم الملف على السيرفر -> مساره المحلي، ومساره النسبي داخل مجلد الموقع
 $payload = @(
     @{ Name = 'QanoonCoalition.Web.dll'; Local = Join-Path $srcRoot 'bin\Release\net8.0\QanoonCoalition.Web.dll'; Relative = 'QanoonCoalition.Web.dll' },

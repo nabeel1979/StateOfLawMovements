@@ -436,31 +436,17 @@ public class ManagerController : Controller
     // ─── قائمة الطلبات ───────────────────────────────────────────────────────
     [HttpGet]
     public async Task<IActionResult> CitizenRequests(
-        string? search, int? statusId, int? destinationId,
-        int? receivedByMemberId, int? documentTypeId,
-        DateTime? fromDate, DateTime? toDate, int page = 1)
+        List<MemberFilter>? filters, FilterMatch match = FilterMatch.All, int page = 1)
     {
         var movId = GetMovementId();
-        var filter = new CitizenRequestFilter
-        {
-            Search = search, StatusId = statusId,
-            DestinationId = destinationId, ReceivedByMemberId = receivedByMemberId,
-            DocumentTypeId = documentTypeId, FromDate = fromDate, ToDate = toDate
-        };
-        var (items, total) = await _crSvc.GetListAsync(movId, filter, page, 20);
+        var (items, total) = await _crSvc.SearchAsync(movId, filters, match, page, 20);
 
-        ViewBag.Filter = filter;
+        ViewBag.Filters = CitizenRequestFilterFields.Normalize(filters);
+        ViewBag.Match = match;
+        ViewBag.FilterOptions = await _crSvc.GetFilterOptionsAsync(movId);
         ViewBag.Page = page;
         ViewBag.TotalPages = (int)Math.Ceiling(total / 20.0);
         ViewBag.Total = total;
-        ViewBag.Statuses = await _crSvc.GetStatusesAsync();
-        ViewBag.Destinations = await _crSvc.GetDestinationsAsync();
-        ViewBag.DocumentTypes = await _crSvc.GetDocumentTypesAsync();
-        ViewBag.Members = await _db.Members
-            .Where(m => m.MovementId == movId)
-            .OrderBy(m => m.FullName)
-            .Select(m => new { m.Id, m.FullName })
-            .ToListAsync();
 
         return View(items);
     }
@@ -477,46 +463,68 @@ public class ManagerController : Controller
     public async Task<IActionResult> CreateCitizenRequest(
         CitizenRequest model, List<IFormFile>? attachments, List<int?>? docTypeIds)
     {
-        ModelState.Remove(nameof(CitizenRequest.RequestCode));
-        ModelState.Remove(nameof(CitizenRequest.StatusId));
-        ModelState.Remove(nameof(CitizenRequest.CreatedByUserId));
+        // إزالة الحقول التي تُملأ تلقائياً من ModelState لتجنب أخطاء validation وهمية
+        foreach (var key in new[]
+        {
+            nameof(CitizenRequest.RequestCode), nameof(CitizenRequest.StatusId),
+            nameof(CitizenRequest.CreatedByUserId), nameof(CitizenRequest.MovementId),
+            nameof(CitizenRequest.RequestDate), nameof(CitizenRequest.CreatedAt),
+            nameof(CitizenRequest.UpdatedAt), nameof(CitizenRequest.Movement),
+            nameof(CitizenRequest.Status), nameof(CitizenRequest.CreatedByUser),
+            nameof(CitizenRequest.Attachments), nameof(CitizenRequest.StatusHistory),
+            nameof(CitizenRequest.ReceivedByMember), nameof(CitizenRequest.Destination)
+        })
+            ModelState.Remove(key);
 
         if (!ModelState.IsValid)
         {
             await PopulateCrViewBag();
+            TempData["Error"] = "يرجى تصحيح الأخطاء المُشار إليها في النموذج";
             return View(model);
         }
 
-        var movId = GetMovementId();
-        model.MovementId = movId;
-
-        // التحقق أن مستلم الطلب تابع لنفس الحركة
-        if (model.ReceivedByMemberId.HasValue)
+        try
         {
-            var ok = await _db.Members.AnyAsync(m =>
-                m.Id == model.ReceivedByMemberId && m.MovementId == movId);
-            if (!ok) model.ReceivedByMemberId = null;
+            var movId = GetMovementId();
+            model.MovementId = movId;
+
+            if (model.ReceivedByMemberId.HasValue)
+            {
+                var ok = await _db.Members.AnyAsync(m =>
+                    m.Id == model.ReceivedByMemberId && m.MovementId == movId);
+                if (!ok) model.ReceivedByMemberId = null;
+            }
+
+            var created = await _crSvc.CreateAsync(model, GetUserId());
+
+            if (attachments != null && attachments.Any(f => f.Length > 0))
+                await SaveAttachmentsAsync(attachments, docTypeIds, created.Id, movId);
+
+            TempData["Success"] = $"تم إنشاء الطلب بنجاح — الكود: {created.RequestCode}";
+            return RedirectToAction(nameof(CitizenRequests));
         }
-
-        var created = await _crSvc.CreateAsync(model, GetUserId());
-
-        // حفظ المرفقات
-        if (attachments != null)
-            await SaveAttachmentsAsync(attachments, docTypeIds, created.Id, movId);
-
-        TempData["Success"] = "تم إنشاء الطلب بنجاح";
-        return RedirectToAction(nameof(CitizenRequestDetails), new { id = created.Id });
+        catch (Exception ex)
+        {
+            await PopulateCrViewBag();
+            TempData["Error"] = "حدث خطأ أثناء الحفظ: " + ex.Message;
+            return View(model);
+        }
     }
 
     // ─── تفاصيل الطلب ────────────────────────────────────────────────────────
-    public async Task<IActionResult> CitizenRequestDetails(int id)
+    public async Task<IActionResult> CitizenRequestDetails(int id, int? print = null)
     {
         var movId = GetMovementId();
         var request = await _crSvc.GetByIdAsync(id, movId);
         if (request == null) return NotFound();
 
         ViewBag.Statuses = await _crSvc.GetStatusesAsync();
+        ViewBag.DocTypes = await _crSvc.GetDocumentTypesAsync();
         ViewBag.CurrentStatusId = request.StatusId;
+        var movement = await _movements.GetByIdAsync(movId);
+        ViewBag.MovementName = movement?.Name ?? "";
+        // الطباعة من قائمة الطلبات تفتح هذه الصفحة وتستدعي الطباعة تلقائياً
+        ViewBag.AutoPrint = print == 1;
         return View(request);
     }
 
@@ -535,9 +543,17 @@ public class ManagerController : Controller
     public async Task<IActionResult> EditCitizenRequest(
         CitizenRequest model, List<IFormFile>? attachments, List<int?>? docTypeIds)
     {
-        ModelState.Remove(nameof(CitizenRequest.RequestCode));
-        ModelState.Remove(nameof(CitizenRequest.StatusId));
-        ModelState.Remove(nameof(CitizenRequest.CreatedByUserId));
+        foreach (var key in new[]
+        {
+            nameof(CitizenRequest.RequestCode), nameof(CitizenRequest.StatusId),
+            nameof(CitizenRequest.CreatedByUserId), nameof(CitizenRequest.MovementId),
+            nameof(CitizenRequest.RequestDate), nameof(CitizenRequest.CreatedAt),
+            nameof(CitizenRequest.UpdatedAt), nameof(CitizenRequest.Movement),
+            nameof(CitizenRequest.Status), nameof(CitizenRequest.CreatedByUser),
+            nameof(CitizenRequest.Attachments), nameof(CitizenRequest.StatusHistory),
+            nameof(CitizenRequest.ReceivedByMember), nameof(CitizenRequest.Destination)
+        })
+            ModelState.Remove(key);
 
         var movId = GetMovementId();
         var existing = await _db.CitizenRequests
@@ -547,6 +563,7 @@ public class ManagerController : Controller
         if (!ModelState.IsValid)
         {
             await PopulateCrViewBag();
+            TempData["Error"] = "يرجى تصحيح الأخطاء في النموذج";
             return View(model);
         }
 

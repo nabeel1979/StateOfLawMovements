@@ -1,7 +1,7 @@
-/* ═══════════════════════════════════════════════════════
-   نظام إدارة الحركات - ائتلاف دولة القانون
-   المطور: المهندس نبيل الخفاجي
-   ═══════════════════════════════════════════════════════ */
+/* âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+   ÙØ¸Ø§Ù Ø¥Ø¯Ø§Ø±Ø© Ø§ÙØ­Ø±ÙØ§Øª - Ø§Ø¦ØªÙØ§Ù Ø¯ÙÙØ© Ø§ÙÙØ§ÙÙÙ
+   Ø§ÙÙØ·ÙØ±: Ø§ÙÙÙÙØ¯Ø³ ÙØ¨ÙÙ Ø§ÙØ®ÙØ§Ø¬Ù
+   âââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
 
 :root {
     --primary:        #1a6b3a;
@@ -31,13 +31,13 @@ body {
     margin: 0;
 }
 
-/* ═══ App Wrapper ══════════════════════════════════════ */
+/* âââ App Wrapper ââââââââââââââââââââââââââââââââââââââ */
 .app-wrapper {
     display: flex;
     min-height: 100vh;
 }
 
-/* ═══ Sidebar ══════════════════════════════════════════ */
+/* âââ Sidebar ââââââââââââââââââââââââââââââââââââââââââ */
 .sidebar {
     width: var(--sidebar-width);
     background: linear-gradient(180deg, var(--primary-dark) 0%, var(--primary) 100%);
@@ -131,7 +131,7 @@ body {
 
 .nav-item i { width: 20px; text-align: center; flex-shrink: 0; font-size: 1rem; }
 
-/* ── Sub nav items ── */
+/* ââ Sub nav items ââ */
 .nav-item.nav-sub {
     padding-right: 36px;
     font-size: .88rem;
@@ -139,7 +139,7 @@ body {
 }
 .nav-item.nav-sub i { font-size: .85rem; }
 
-/* ── Nav Group (collapsible) ── */
+/* ââ Nav Group (collapsible) ââ */
 .nav-group { margin-bottom: 2px; }
 
 .nav-group-header {
@@ -179,7 +179,7 @@ body {
 }
 .nav-group.open .nav-group-body { max-height: 300px; }
 
-/* ── Toggle All Button ── */
+/* ââ Toggle All Button ââ */
 .nav-toggle-all {
     padding: 6px 12px 2px;
     text-align: left;
@@ -208,7 +208,7 @@ body {
 .sidebar.collapsed .nav-toggle-all { display: none; }
 .sidebar.collapsed .nav-group.open .nav-group-body { max-height: 300px; }
 
-/* ═══ Main Content ═════════════════════════════════════ */
+/* âââ Main Content âââââââââââââââââââââââââââââââââââââ */
 .main-content {
     margin-right: var(--sidebar-width);
     flex: 1;
@@ -220,7 +220,7 @@ body {
 
 .main-content.expanded { margin-right: 64px; }
 
-/* ═══ Top Navbar ═══════════════════════════════════════ */
+/* âââ Top Navbar âââââââââââââââââââââââââââââââââââââââ */
 .top-navbar {
     background: #fff;
     height: var(--navbar-height);
@@ -275,10 +275,10 @@ body {
 
 .btn-logout:hover { background: #fde8ea; }
 
-/* ═══ Alerts ═══════════════════════════════════════════ */
+/* âââ Alerts âââââââââââââââââââââââââââââââââââââââââââ */
 .alerts-container { padding: 16px 24px 0; }
 
-/* ═══ Page Content ═════════════════════════════════════ */
+/* âââ Page Content âââââââââââââââââââââââââââââââââââââ */
 .page-content { padding: 24px; flex: 1; }
 
 .page-footer {
@@ -291,7 +291,7 @@ body {
     color: var(--secondary);
 }
 
-/* ═══ Page Header ══════════════════════════════════════ */
+/* âââ Page Header ââââââââââââââââââââââââââââââââââââââ */
 .page-header {
     display: flex;
     align-items: center;
@@ -310,7 +310,7 @@ body {
 
 .page-title i { color: var(--primary-light); margin-left: 8px; }
 
-/* ═══ Stats Cards ══════════════════════════════════════ */
+/* âââ Stats Cards ââââââââââââââââââââââââââââââââââââââ */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -358,7 +358,7 @@ body {
 .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--primary-dark); line-height: 1; }
 .stat-label { font-size: .8rem; color: var(--secondary); margin-top: 4px; }
 
-/* ═══ Cards ════════════════════════════════════════════ */
+/* âââ Cards ââââââââââââââââââââââââââââââââââââââââââââ */
 .card {
     border: none;
     border-radius: var(--radius);
@@ -376,7 +376,7 @@ body {
 
 .card-header i { color: var(--primary-light); margin-left: 8px; }
 
-/* ═══ Table ════════════════════════════════════════════ */
+/* âââ Table ââââââââââââââââââââââââââââââââââââââââââââ */
 .table-responsive { border-radius: var(--radius); }
 
 .table { margin: 0; }
@@ -400,12 +400,12 @@ body {
     border-color: rgba(0,0,0,.05);
 }
 
-/* ═══ Badges ════════════════════════════════════════════ */
+/* âââ Badges ââââââââââââââââââââââââââââââââââââââââââââ */
 .status-pending  { background: #fff3cd; color: #856404; border-radius: 20px; padding: 3px 10px; font-size:.78rem; font-weight:600; }
 .status-approved { background: var(--accent-light); color: #155724; border-radius: 20px; padding: 3px 10px; font-size:.78rem; font-weight:600; }
 .status-rejected { background: #fde8ea; color: #721c24; border-radius: 20px; padding: 3px 10px; font-size:.78rem; font-weight:600; }
 
-/* ═══ Buttons ═══════════════════════════════════════════ */
+/* âââ Buttons âââââââââââââââââââââââââââââââââââââââââââ */
 .btn-primary { background: var(--primary); border-color: var(--primary); }
 .btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
 
@@ -414,7 +414,7 @@ body {
 
 .btn-sm { font-size: .78rem; padding: 4px 10px; border-radius: var(--radius-sm); }
 
-/* ═══ Forms ═════════════════════════════════════════════ */
+/* âââ Forms âââââââââââââââââââââââââââââââââââââââââââââ */
 .form-label { font-weight: 600; color: var(--primary-dark); margin-bottom: 6px; font-size: .88rem; }
 .form-control, .form-select {
     border-radius: var(--radius-sm);
@@ -430,7 +430,7 @@ body {
     box-shadow: 0 0 0 3px rgba(26,107,58,.15);
 }
 
-/* ═══ Login Page ════════════════════════════════════════ */
+/* âââ Login Page ââââââââââââââââââââââââââââââââââââââââ */
 .login-page {
     min-height: 100vh;
     background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, var(--primary-light) 100%);
@@ -467,7 +467,7 @@ body {
 .login-logo h1 { font-size: 1.2rem; font-weight: 700; color: var(--primary-dark); margin: 0; }
 .login-logo p  { font-size: .82rem; color: var(--secondary); margin: 4px 0 0; }
 
-/* ═══ Join Request (Public) ════════════════════════════ */
+/* âââ Join Request (Public) ââââââââââââââââââââââââââââ */
 .public-join {
     min-height: 100vh;
     background: linear-gradient(160deg, #f0faf4 0%, #e8f5ee 100%);
@@ -505,7 +505,7 @@ body {
     box-shadow: var(--shadow-lg);
 }
 
-/* ═══ Confirmation Page ════════════════════════════════ */
+/* âââ Confirmation Page ââââââââââââââââââââââââââââââââ */
 .confirmation-card {
     max-width: 520px;
     margin: 80px auto;
@@ -538,7 +538,7 @@ body {
     letter-spacing: .1em;
 }
 
-/* ═══ Pagination ════════════════════════════════════════ */
+/* âââ Pagination ââââââââââââââââââââââââââââââââââââââââ */
 .pagination .page-link {
     color: var(--primary);
     border-color: #dee2e6;
@@ -550,7 +550,7 @@ body {
     border-color: var(--primary);
 }
 
-/* ═══ Serial Number Badge ══════════════════════════════ */
+/* âââ Serial Number Badge ââââââââââââââââââââââââââââââ */
 .serial-badge {
     font-family: 'Courier New', monospace;
     background: var(--primary-soft);
@@ -562,7 +562,7 @@ body {
     letter-spacing: .08em;
 }
 
-/* ═══ Movement Card (Admin Reports) ════════════════════ */
+/* âââ Movement Card (Admin Reports) ââââââââââââââââââââ */
 .movement-card {
     background: #fff;
     border-radius: var(--radius);
@@ -574,7 +574,7 @@ body {
 
 .movement-card:hover { box-shadow: var(--shadow-md); }
 
-/* ═══ Empty State ═══════════════════════════════════════ */
+/* âââ Empty State âââââââââââââââââââââââââââââââââââââââ */
 .empty-state {
     text-align: center;
     padding: 60px 20px;
@@ -584,7 +584,7 @@ body {
 .empty-state i { font-size: 3rem; opacity: .3; display: block; margin-bottom: 16px; }
 .empty-state p { font-size: 1rem; margin: 0; }
 
-/* ═══ Search Bar ════════════════════════════════════════ */
+/* âââ Search Bar ââââââââââââââââââââââââââââââââââââââââ */
 .search-bar {
     background: #fff;
     border-radius: var(--radius);
@@ -593,7 +593,7 @@ body {
     margin-bottom: 20px;
 }
 
-/* ═══ Member filter builder ═════════════════════════════ */
+/* âââ Member filter builder âââââââââââââââââââââââââââââ */
 
 .mf-wrap { margin-bottom: 20px; position: relative; }
 
@@ -813,7 +813,7 @@ body {
     .mf-panel-foot { justify-content: space-between; }
 }
 
-/* ═══ Member photo + image viewer ══════════════════════ */
+/* âââ Member photo + image viewer ââââââââââââââââââââââ */
 
 .photo-box { text-align: center; }
 
@@ -939,7 +939,7 @@ body {
 }
 .img-viewer-stage.zoomed img { cursor: zoom-out; }
 
-/* ═══ System Constants ═════════════════════════════════ */
+/* âââ System Constants âââââââââââââââââââââââââââââââââ */
 
 .sc-summary { display: flex; gap: 10px; }
 
@@ -1215,18 +1215,18 @@ body {
     .sc-actions { width: 100%; justify-content: flex-end; }
 }
 
-/* ═══ Responsive ════════════════════════════════════════ */
+/* âââ Responsive ââââââââââââââââââââââââââââââââââââââââ */
 
-/* ── Tablet (≤992px) ── */
+/* ââ Tablet (â¤992px) ââ */
 @media (max-width: 992px) {
     :root { --sidebar-width: 240px; }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .table th, .table td { font-size: .82rem; padding: .5rem .6rem; }
 }
 
-/* ── Mobile (≤768px) ── */
+/* ââ Mobile (â¤768px) ââ */
 @media (max-width: 768px) {
-    /* Sidebar: مخفي افتراضياً خارج الشاشة */
+    /* Sidebar: ÙØ®ÙÙ Ø§ÙØªØ±Ø§Ø¶ÙØ§Ù Ø®Ø§Ø±Ø¬ Ø§ÙØ´Ø§Ø´Ø© */
     .sidebar {
         transform: translateX(110%);
         box-shadow: none;
@@ -1238,7 +1238,7 @@ body {
         box-shadow: -6px 0 30px rgba(0,0,0,.25);
     }
 
-    /* Overlay خلف السايدبار على الموبايل */
+    /* Overlay Ø®ÙÙ Ø§ÙØ³Ø§ÙØ¯Ø¨Ø§Ø± Ø¹ÙÙ Ø§ÙÙÙØ¨Ø§ÙÙ */
     .sidebar-overlay {
         display: none;
         position: fixed;
@@ -1248,7 +1248,7 @@ body {
     }
     .sidebar-overlay.active { display: block; }
 
-    /* المحتوى الرئيسي يملأ كامل العرض */
+    /* Ø§ÙÙØ­ØªÙÙ Ø§ÙØ±Ø¦ÙØ³Ù ÙÙÙØ£ ÙØ§ÙÙ Ø§ÙØ¹Ø±Ø¶ */
     .main-content {
         margin-right: 0 !important;
         width: 100%;
@@ -1259,7 +1259,7 @@ body {
     .navbar-breadcrumb { font-size: .85rem; }
     .user-name { display: none; }
 
-    /* المحتوى */
+    /* Ø§ÙÙØ­ØªÙÙ */
     .page-content { padding: 12px; }
     .page-header {
         flex-direction: column;
@@ -1269,17 +1269,17 @@ body {
     .page-header .btn { width: 100%; text-align: center; }
     .page-title { font-size: 1.1rem; }
 
-    /* بطاقات الإحصاء */
+    /* Ø¨Ø·Ø§ÙØ§Øª Ø§ÙØ¥Ø­ØµØ§Ø¡ */
     .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .stat-card { padding: 14px; }
     .stat-value { font-size: 1.6rem; }
 
-    /* الجداول */
+    /* Ø§ÙØ¬Ø¯Ø§ÙÙ */
     .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .table { min-width: 540px; font-size: .8rem; }
     .table th, .table td { white-space: nowrap; padding: .45rem .5rem; }
 
-    /* الكروت */
+    /* Ø§ÙÙØ±ÙØª */
     .card-body { padding: 14px !important; }
     .join-form-card { padding: 18px; border-radius: 12px; }
     .login-card { padding: 32px 22px; width: calc(100% - 0px); max-width: 100%; }
@@ -1287,36 +1287,36 @@ body {
     .login-logo h1 { font-size: 1.1rem; }
     .login-logo { margin-bottom: 20px; }
 
-    /* الأزرار */
+    /* Ø§ÙØ£Ø²Ø±Ø§Ø± */
     .btn-sm { padding: .3rem .55rem; font-size: .78rem; }
     .d-flex.gap-2 { flex-wrap: wrap; }
 
-    /* الفورم */
+    /* Ø§ÙÙÙØ±Ù */
     .row.g-3 > [class*="col-md"] { width: 100%; }
 
     /* Footer */
     .page-footer { flex-direction: column; text-align: center; gap: 4px; font-size: .75rem; }
 }
 
-/* ── Small Mobile (≤480px) ── */
+/* ââ Small Mobile (â¤480px) ââ */
 @media (max-width: 480px) {
     .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
     .stat-card { padding: 12px 10px; }
     .stat-value { font-size: 1.4rem; }
     .stat-label { font-size: .7rem; }
 
-    /* إخفاء بعض أعمدة الجدول الأقل أهمية */
+    /* Ø¥Ø®ÙØ§Ø¡ Ø¨Ø¹Ø¶ Ø£Ø¹ÙØ¯Ø© Ø§ÙØ¬Ø¯ÙÙ Ø§ÙØ£ÙÙ Ø£ÙÙÙØ© */
     .table .hide-xs { display: none; }
 
-    /* تصغير رأس الصفحة */
+    /* ØªØµØºÙØ± Ø±Ø£Ø³ Ø§ÙØµÙØ­Ø© */
     .page-content { padding: 10px 8px; }
 
-    /* الاستمارة العامة */
+    /* Ø§ÙØ§Ø³ØªÙØ§Ø±Ø© Ø§ÙØ¹Ø§ÙØ© */
     .join-hero h1 { font-size: 1.3rem; }
     .join-hero p  { font-size: .82rem; }
     .join-form-container { padding: 0 10px 32px; }
 
-    /* صفحة تسجيل الدخول */
+    /* ØµÙØ­Ø© ØªØ³Ø¬ÙÙ Ø§ÙØ¯Ø®ÙÙ */
     .login-page { padding: 12px; align-items: flex-start; padding-top: 40px; }
     .login-card { padding: 28px 18px; border-radius: 16px; }
     .login-logo .logo-circle { width: 56px; height: 56px; font-size: 1.5rem; margin-bottom: 10px; }
@@ -1327,7 +1327,14 @@ body {
     .login-card .btn { padding: .6rem 1rem; font-size: .95rem; }
 }
 
-/* ═══ Utilities ═════════════════════════════════════════ */
+/* âââ Utilities âââââââââââââââââââââââââââââââââââââââââ */
+/* Action dropdowns inside scrollable tables.
+   .table-responsive clips overflow, so we open it up only while the menu
+   is shown to keep horizontal scrolling intact on mobile. */
+.table-responsive:has(.dropdown-menu.show) { overflow: visible; }
+.table-responsive .dropdown-menu.show { z-index: 1055; }
+.table-responsive .dropdown-menu { min-width: 150px; }
+
 .text-primary { color: var(--primary) !important; }
 .bg-primary-soft { background: var(--primary-soft); }
 .fw-700 { font-weight: 700; }
@@ -1338,3 +1345,214 @@ body {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #f1f1f1; }
 ::-webkit-scrollbar-thumb { background: var(--primary-light); border-radius: 3px; }
+
+
+/* ---------------------------------------------------------------
+   ????? ????? ?????????    Print styles
+--------------------------------------------------------------- */
+#printArea { display: none; }
+
+@media print {
+    #printArea {
+        display: flex !important;
+        flex-direction: column;
+        /* ارتفاع ثابت لا يتجاوز صفحة A4 واحدة (297mm - 20mm هوامش) */
+        height: 262mm;
+        max-height: 262mm;
+        overflow: hidden;
+        background: #fff !important;
+        font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+        font-size: 12pt;
+        color: #111;
+        direction: rtl;
+        padding: 0;
+        margin: 0;
+    }
+    /* كل الأقسام بحجمها الطبيعي بلا انضغاط */
+    #printArea > * { flex: 0 0 auto; }
+    /* الباركود يبقى في الأسفل بحجمه الطبيعي */
+    .print-barcode-footer { margin-top: 0 !important; }
+
+    /* A4 single page — hide everything except printArea */
+    @page { size: A4 portrait; margin: 10mm 12mm; }
+
+    .sidebar, .top-navbar, .page-footer, .alerts-container,
+    #screenContent, .modal, .modal-backdrop
+        { display: none !important; }
+
+    /* إزالة كل الخلفيات والظلال والحدود من الحاويات */
+    html, body, .app-wrapper, .main-content, .page-content {
+        background: #fff !important;
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: auto !important;
+        max-width: none !important;
+        min-height: 0 !important;
+        display: block !important;
+    }
+
+    /* Header */
+    .print-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-bottom: 2px double #1a7a3f;
+        padding-bottom: 6px;
+        margin-bottom: 5px;
+    }
+    .print-logo { width: 58px; height: 58px; object-fit: contain; }
+    .print-logo-wrap { flex: 0 0 62px; }
+    .print-org { flex: 1; }
+    .print-org-main     { font-size: 14pt; font-weight: 900; color: #1a7a3f; line-height: 1.2; }
+    .print-org-movement { font-size: 10pt; font-weight: 700; color: #333; margin-top: 2px; }
+
+    /* Title block */
+    .print-title-block {
+        display: flex;
+        align-items: stretch;
+        gap: 8px;
+        margin: 5px 0 8px;
+    }
+    .print-title {
+        flex: 1;
+        text-align: center;
+        font-size: 12pt;
+        font-weight: 900;
+        color: #1a7a3f;
+        border: 2px solid #1a7a3f;
+        border-radius: 4px;
+        padding: 3px 10px;
+        background: none;
+    }
+    .print-code-inline {
+        border: 2px solid #1a7a3f;
+        border-radius: 4px;
+        padding: 3px 10px;
+        background: none;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .print-code-label { font-size: 8pt; color: #555; }
+    .print-code-val   { font-size: 10pt; font-weight: 900; color: #1a7a3f; }
+
+    /* Section title */
+    .print-section-title {
+        background: none;
+        color: #1a7a3f;
+        font-weight: 900;
+        font-size: 9pt;
+        padding: 2px 0;
+        border-bottom: 1.5px solid #1a7a3f;
+        margin: 7px 0 2px;
+    }
+
+    /* Data table */
+    .print-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 9pt;
+        margin-bottom: 2px;
+    }
+    .print-table th,
+    .print-table td {
+        border: 1px solid #aaa;
+        padding: 3px 7px;
+        text-align: right;
+        vertical-align: top;
+    }
+    .print-table th {
+        background: none;
+        font-weight: 700;
+        white-space: nowrap;
+        width: 17%;
+    }
+    .print-email-cell { min-width: 100pt; }
+
+    /* Free text box — يتمدد لملء المساحة المتبقية في الصفحة */
+    .print-text-box {
+        flex: 1 1 auto !important;
+        border: 1px solid #aaa;
+        border-radius: 3px;
+        padding: 8px 12px;
+        min-height: 55mm;
+        overflow: hidden;
+        white-space: pre-wrap;
+        font-size: 10pt;
+        line-height: 1.7;
+        background: none;
+    }
+
+    /* Signatures — single table row (ارتفاع ثابت لا يتأثر بتمدد التفاصيل) */
+    .print-sig-table {
+        flex: 0 0 auto !important;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 6px 0;
+        margin-top: 14px;
+        page-break-inside: avoid;
+    }
+    .print-sig-cell {
+        width: 33.33%;
+        border: 1px solid #aaa;
+        border-radius: 4px;
+        padding: 6px 8px 5px;
+        text-align: center;
+        vertical-align: top;
+    }
+    .print-sig-title {
+        font-weight: 900;
+        font-size: 9pt;
+        color: #1a7a3f;
+        border-bottom: 1px dashed #aaa;
+        padding-bottom: 3px;
+        margin-bottom: 4px;
+    }
+    .print-sig-name       { font-size: 8.5pt; color: #333; margin-bottom: 4px; }
+    .print-sig-space      { height: 95px; }
+    .print-sig-stamp-area { height: 95px; }
+    .print-sig-line       { border-top: 1px solid #333; margin: 0 4px; }
+    .print-sig-date       { font-size: 8pt; color: #555; margin-top: 3px; }
+
+    /* Footer */
+    .print-footer {
+        text-align: center;
+        font-size: 7pt;
+        color: #888;
+        border-top: 1px solid #ccc;
+        padding-top: 4px;
+        margin-top: 10px;
+    }
+
+    /* Barcode + footer */
+    .print-barcode-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-top: 1px solid #ccc;
+        padding-top: 6px;
+        margin-top: 10px;
+    }
+    .print-barcode-wrap { text-align: center; }
+    .print-barcode-wrap svg { display: block; }
+    .print-barcode-text {
+        font-size: 7pt;
+        color: #1a7a3f;
+        font-weight: 700;
+        letter-spacing: 2px;
+        margin-top: 1px;
+        font-family: monospace;
+    }
+    .print-footer-text {
+        flex: 1;
+        text-align: left;
+        font-size: 7pt;
+        color: #888;
+    }
+
+    .modal, .modal-backdrop { display: none !important; }
+}

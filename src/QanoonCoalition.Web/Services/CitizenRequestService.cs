@@ -39,6 +39,13 @@ public interface ICitizenRequestService
     Task<(IList<CitizenRequestListItem> Items, int Total)> GetListAsync(
         int movementId, CitizenRequestFilter filter, int page, int pageSize);
 
+    /// <summary>بحث بشروط متعددة مبنية في الواجهة (فلتر متقدم)</summary>
+    Task<(IList<CitizenRequestListItem> Items, int Total)> SearchAsync(
+        int movementId, List<MemberFilter>? filters, FilterMatch match, int page, int pageSize);
+
+    /// <summary>القيم الجاهزة لقوائم الفلتر المنسدلة، مفتاحها هو مفتاح الحقل</summary>
+    Task<Dictionary<string, List<string>>> GetFilterOptionsAsync(int movementId);
+
     Task<CitizenRequest?> GetByIdAsync(int id, int movementId);
 
     Task<string> GenerateCodeAsync();
@@ -127,6 +134,77 @@ public class CitizenRequestService : ICitizenRequestService
             .ToListAsync();
 
         return (items, total);
+    }
+
+    public async Task<(IList<CitizenRequestListItem> Items, int Total)> SearchAsync(
+        int movementId, List<MemberFilter>? filters, FilterMatch match, int page, int pageSize)
+    {
+        var q = _db.CitizenRequests
+            .Where(r => r.MovementId == movementId)
+            .AsQueryable();
+
+        var predicate = CitizenRequestFilterBuilder.Build(filters, match);
+        if (predicate != null) q = q.Where(predicate);
+
+        var total = await q.CountAsync();
+
+        var items = await q
+            .OrderByDescending(r => r.RequestDate)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(r => new CitizenRequestListItem
+            {
+                Id = r.Id,
+                RequestCode = r.RequestCode,
+                RequestDate = r.RequestDate,
+                ApplicantName = r.ApplicantName,
+                ApplicantPhone = r.ApplicantPhone,
+                RequestSubject = r.RequestSubject,
+                ReceivedByMemberName = r.ReceivedByMember != null ? r.ReceivedByMember.FullName : null,
+                DestinationName = r.Destination != null ? r.Destination.Name : null,
+                StatusName = r.Status.Name,
+                StatusColor = r.Status.ColorClass,
+                AttachmentCount = r.Attachments.Count()
+            })
+            .ToListAsync();
+
+        return (items, total);
+    }
+
+    public async Task<Dictionary<string, List<string>>> GetFilterOptionsAsync(int movementId)
+    {
+        var statuses = await _db.CitizenRequestStatuses
+            .Where(s => s.IsActive)
+            .OrderBy(s => s.DisplayOrder)
+            .Select(s => s.Name)
+            .ToListAsync();
+
+        var destinations = await _db.RequestDestinations
+            .Where(d => d.IsActive)
+            .OrderBy(d => d.DisplayOrder).ThenBy(d => d.Name)
+            .Select(d => d.Name)
+            .ToListAsync();
+
+        var docTypes = await _db.DocumentTypes
+            .Where(d => d.IsActive)
+            .OrderBy(d => d.DisplayOrder)
+            .Select(d => d.Name)
+            .ToListAsync();
+
+        // مستلمو الطلب: أعضاء الحركة الحالية فقط
+        var receivers = await _db.Members
+            .Where(m => m.MovementId == movementId)
+            .OrderBy(m => m.FullName)
+            .Select(m => m.FullName)
+            .ToListAsync();
+
+        return new Dictionary<string, List<string>>
+        {
+            ["status"]      = statuses,
+            ["destination"] = destinations,
+            ["receiver"]    = receivers,
+            [CitizenRequestFilterFields.DocTypeKey] = docTypes
+        };
     }
 
     public async Task<CitizenRequest?> GetByIdAsync(int id, int movementId)

@@ -20,6 +20,15 @@
 <form asp-action="CreateCitizenRequest" method="post" enctype="multipart/form-data">
     @Html.AntiForgeryToken()
 
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show mb-3">
+            <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3" style="display:none"></div>
+
     <div class="row g-3">
         <!-- بيانات مقدم الطلب -->
         <div class="col-lg-8">
@@ -93,26 +102,30 @@
                     </button>
                 </div>
                 <div class="card-body" id="attachmentRows">
-                    <div class="attachment-row row g-2 mb-2" data-index="0">
-                        <div class="col-md-6">
-                            <input type="file" name="attachments" class="form-control form-control-sm"
-                                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls"/>
+                    <div class="attachment-row mb-3 border rounded p-2" data-index="0">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-md-5">
+                                <input type="file" name="attachments" class="form-control form-control-sm"
+                                       accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls"
+                                       onchange="previewAttachment(this)"/>
+                            </div>
+                            <div class="col-md-4">
+                                <select name="docTypeIds" class="form-select form-select-sm">
+                                    <option value="">— نوع الوثيقة —</option>
+                                    @foreach (var dt in docTypes)
+                                    {
+                                        <option value="@dt.Id">@dt.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" class="btn btn-sm btn-outline-danger w-100"
+                                        onclick="removeRow(this)" title="حذف">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div class="col-md-5">
-                            <select name="docTypeIds" class="form-select form-select-sm">
-                                <option value="">— نوع الوثيقة —</option>
-                                @foreach (var dt in docTypes)
-                                {
-                                    <option value="@dt.Id">@dt.Name</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="col-md-1">
-                            <button type="button" class="btn btn-sm btn-outline-danger w-100"
-                                    onclick="removeRow(this)" title="حذف">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
+                        <div class="attachment-preview mt-2" style="display:none"></div>
                     </div>
                 </div>
                 <div class="card-footer text-muted small">
@@ -179,30 +192,85 @@ var docTypeOptions = `@foreach (var dt in docTypes)
 function addAttachmentRow() {
     var container = document.getElementById('attachmentRows');
     var row = document.createElement('div');
-    row.className = 'attachment-row row g-2 mb-2';
+    row.className = 'attachment-row mb-3 border rounded p-2';
     row.innerHTML = `
-        <div class="col-md-6">
-            <input type="file" name="attachments" class="form-control form-control-sm"
-                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls"/>
+        <div class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <input type="file" name="attachments" class="form-control form-control-sm"
+                       accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls"
+                       onchange="previewAttachment(this)"/>
+            </div>
+            <div class="col-md-4">
+                <select name="docTypeIds" class="form-select form-select-sm">
+                    <option value="">— نوع الوثيقة —</option>
+                    ${docTypeOptions}
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-sm btn-outline-danger w-100"
+                        onclick="removeRow(this)" title="حذف">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
-        <div class="col-md-5">
-            <select name="docTypeIds" class="form-select form-select-sm">
-                <option value="">— نوع الوثيقة —</option>
-                ${docTypeOptions}
-            </select>
-        </div>
-        <div class="col-md-1">
-            <button type="button" class="btn btn-sm btn-outline-danger w-100"
-                    onclick="removeRow(this)" title="حذف">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>`;
+        <div class="attachment-preview mt-2" style="display:none"></div>`;
     container.appendChild(row);
 }
 
 function removeRow(btn) {
     var rows = document.querySelectorAll('.attachment-row');
     if (rows.length > 1) btn.closest('.attachment-row').remove();
+}
+
+function previewAttachment(input) {
+    var preview = input.closest('.attachment-row').querySelector('.attachment-preview');
+    var file = input.files[0];
+    if (!file) { preview.style.display = 'none'; return; }
+
+    var size = file.size < 1024 * 1024
+        ? (file.size / 1024).toFixed(1) + ' KB'
+        : (file.size / 1024 / 1024).toFixed(2) + ' MB';
+
+    var isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+    var isPdf   = /\.pdf$/i.test(file.name);
+    var isWord  = /\.(doc|docx)$/i.test(file.name);
+    var isExcel = /\.(xls|xlsx)$/i.test(file.name);
+
+    if (isImage) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            preview.style.display = '';
+            preview.innerHTML =
+                '<div class="d-flex align-items-center gap-2">' +
+                  '<img src="' + e.target.result + '" ' +
+                       'data-zoom="' + e.target.result + '" ' +
+                       'data-zoom-title="' + file.name + '" ' +
+                       'style="height:70px;width:70px;object-fit:cover;border-radius:6px;cursor:zoom-in;border:2px solid #c8e6d5" ' +
+                       'title="اضغط للتكبير"/>' +
+                  '<div>' +
+                    '<div class="fw-600 small">' + file.name + '</div>' +
+                    '<div class="text-muted small">' + size + '</div>' +
+                    '<span class="badge bg-success">صورة — جاهزة للرفع</span>' +
+                  '</div>' +
+                '</div>';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        var icon  = isPdf ? 'fas fa-file-pdf text-danger'
+                  : isWord ? 'fas fa-file-word text-primary'
+                  : isExcel ? 'fas fa-file-excel text-success'
+                  : 'fas fa-file text-secondary';
+        preview.style.display = '';
+        preview.innerHTML =
+            '<div class="d-flex align-items-center gap-2">' +
+              '<i class="' + icon + ' fa-2x"></i>' +
+              '<div>' +
+                '<div class="fw-600 small">' + file.name + '</div>' +
+                '<div class="text-muted small">' + size + '</div>' +
+                '<span class="badge bg-secondary">جاهز للرفع</span>' +
+              '</div>' +
+            '</div>';
+    }
 }
 </script>
 }

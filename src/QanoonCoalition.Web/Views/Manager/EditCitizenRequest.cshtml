@@ -2,7 +2,6 @@
 @{
     ViewData["Title"] = $"تعديل الطلب {Model.RequestCode}";
     var destinations = (IList<QanoonCoalition.Web.Models.RequestDestination>)ViewBag.Destinations;
-    var docTypes = (IList<QanoonCoalition.Web.Models.DocumentType>)ViewBag.DocTypes;
     dynamic members = ViewBag.Members;
 }
 
@@ -91,37 +90,12 @@
                 </div>
             </div>
 
-            <!-- مرفقات جديدة -->
-            <div class="card mb-3">
-                <div class="card-header fw-600 d-flex justify-content-between align-items-center">
-                    <span><i class="fas fa-paperclip me-2"></i>إضافة مرفقات جديدة</span>
-                    <button type="button" class="btn btn-sm btn-outline-success" onclick="addAttachmentRow()">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                </div>
-                <div class="card-body" id="attachmentRows">
-                    <div class="attachment-row row g-2 mb-2">
-                        <div class="col-md-6">
-                            <input type="file" name="attachments" class="form-control form-control-sm"
-                                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls"/>
-                        </div>
-                        <div class="col-md-5">
-                            <select name="docTypeIds" class="form-select form-select-sm">
-                                <option value="">— نوع الوثيقة —</option>
-                                @foreach (var dt in docTypes)
-                                {
-                                    <option value="@dt.Id">@dt.Name</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="col-md-1">
-                            <button type="button" class="btn btn-sm btn-outline-danger w-100"
-                                    onclick="removeRow(this)">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            <!-- المرفقات تُدار من صفحة عرض الطلب -->
+            <div class="alert alert-light border d-flex align-items-center gap-2 small">
+                <i class="fas fa-paperclip text-muted"></i>
+                <span>إدارة المرفقات تتم من صفحة
+                    <a asp-action="CitizenRequestDetails" asp-route-id="@Model.Id">عرض الطلب</a>.
+                </span>
             </div>
         </div>
 
@@ -170,36 +144,3 @@
     </div>
 </form>
 
-@section Scripts {
-<script>
-var docTypeOptions = `@foreach (var dt in docTypes)
-{<text><option value="@dt.Id">@dt.Name</option></text>}`;
-
-function addAttachmentRow() {
-    var container = document.getElementById('attachmentRows');
-    var row = document.createElement('div');
-    row.className = 'attachment-row row g-2 mb-2';
-    row.innerHTML = `
-        <div class="col-md-6">
-            <input type="file" name="attachments" class="form-control form-control-sm"
-                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls"/>
-        </div>
-        <div class="col-md-5">
-            <select name="docTypeIds" class="form-select form-select-sm">
-                <option value="">— نوع الوثيقة —</option>
-                ${docTypeOptions}
-            </select>
-        </div>
-        <div class="col-md-1">
-            <button type="button" class="btn btn-sm btn-outline-danger w-100"
-                    onclick="removeRow(this)"><i class="fas fa-times"></i></button>
-        </div>`;
-    container.appendChild(row);
-}
-
-function removeRow(btn) {
-    var rows = document.querySelectorAll('.attachment-row');
-    if (rows.length > 1) btn.closest('.attachment-row').remove();
-}
-</script>
-}
