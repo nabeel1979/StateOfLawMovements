@@ -41,6 +41,7 @@ builder.Services.AddScoped<ISerialNumberService, SerialNumberService>();
 builder.Services.AddScoped<SystemConstantService>();
 builder.Services.AddScoped<MemberFilterOptionsService>();
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<ICitizenRequestService, CitizenRequestService>();
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();

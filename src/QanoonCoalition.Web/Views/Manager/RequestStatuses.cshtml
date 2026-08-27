@@ -1,0 +1,151 @@
+@model IList<QanoonCoalition.Web.Models.CitizenRequestStatus>
+@{
+    ViewData["Title"] = "حالات الطلب";
+    var colors = new[] { "primary","success","warning","danger","info","secondary","dark" };
+}
+
+<div class="page-header d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="fas fa-flag me-2 text-primary"></i>حالات الطلب</h4>
+    <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#statusModal"
+            onclick="openAdd()">
+        <i class="fas fa-plus me-1"></i>إضافة حالة
+    </button>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+}
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="text-center" style="width:50px">#</th>
+                    <th>اسم الحالة</th>
+                    <th class="text-center">اللون</th>
+                    <th class="text-center">الترتيب</th>
+                    <th class="text-center">افتراضية</th>
+                    <th class="text-center">الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{ int i = 1; }
+                @foreach (var s in Model)
+                {
+                    <tr>
+                        <td class="text-center text-muted">@(i++)</td>
+                        <td><span class="badge bg-@s.ColorClass fs-6">@s.Name</span></td>
+                        <td class="text-center">
+                            <span class="badge bg-@s.ColorClass">@s.ColorClass</span>
+                        </td>
+                        <td class="text-center">@s.DisplayOrder</td>
+                        <td class="text-center">
+                            @if (s.IsDefault)
+                            {
+                                <i class="fas fa-check-circle text-success"></i>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-warning"
+                                    onclick="openEdit(@s.Id, '@s.Name.Replace("'", "\\'")','@s.ColorClass', @s.DisplayOrder)">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            @if (!s.IsDefault)
+                            {
+                                <form asp-action="DeleteRequestStatus" method="post" style="display:inline"
+                                      onsubmit="return confirm('حذف هذه الحالة؟')">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@s.Id"/>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="SaveRequestStatus" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" id="stId" value="0"/>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="stModalTitle">إضافة حالة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">اسم الحالة <span class="text-danger">*</span></label>
+                        <input type="text" name="name" id="stName" class="form-control" required/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">اللون</label>
+                        <select name="colorClass" id="stColor" class="form-select">
+                            @foreach (var c in colors)
+                            {
+                                <option value="@c">
+                                    @c
+                                </option>
+                            }
+                        </select>
+                        <div class="mt-2">
+                            <span class="badge" id="colorPreview">معاينة</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">الترتيب</label>
+                        <input type="number" name="displayOrder" id="stOrder" class="form-control"
+                               value="1" min="1"/>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.getElementById('stColor').addEventListener('change', updatePreview);
+
+function updatePreview() {
+    var c = document.getElementById('stColor').value;
+    var p = document.getElementById('colorPreview');
+    p.className = 'badge bg-' + c;
+    p.textContent = document.getElementById('stName').value || 'معاينة';
+}
+
+document.getElementById('stName').addEventListener('input', updatePreview);
+
+function openAdd() {
+    document.getElementById('stId').value = '0';
+    document.getElementById('stName').value = '';
+    document.getElementById('stColor').value = 'secondary';
+    document.getElementById('stOrder').value = '1';
+    document.getElementById('stModalTitle').textContent = 'إضافة حالة';
+    updatePreview();
+}
+
+function openEdit(id, name, color, order) {
+    document.getElementById('stId').value = id;
+    document.getElementById('stName').value = name;
+    document.getElementById('stColor').value = color;
+    document.getElementById('stOrder').value = order;
+    document.getElementById('stModalTitle').textContent = 'تعديل حالة';
+    updatePreview();
+    new bootstrap.Modal(document.getElementById('statusModal')).show();
+}
+</script>
+}

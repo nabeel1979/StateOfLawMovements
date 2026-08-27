@@ -1,0 +1,107 @@
+@model IList<QanoonCoalition.Web.Models.DocumentType>
+@{
+    ViewData["Title"] = "أنواع الوثائق";
+}
+
+<div class="page-header d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="fas fa-file-signature me-2 text-primary"></i>أنواع الوثائق</h4>
+    <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#dtModal"
+            onclick="openAdd()">
+        <i class="fas fa-plus me-1"></i>إضافة نوع
+    </button>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+}
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="text-center" style="width:50px">#</th>
+                    <th>اسم النوع</th>
+                    <th class="text-center">الترتيب</th>
+                    <th class="text-center">الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{ int i = 1; }
+                @foreach (var dt in Model)
+                {
+                    <tr>
+                        <td class="text-center text-muted">@(i++)</td>
+                        <td class="fw-600">@dt.Name</td>
+                        <td class="text-center">@dt.DisplayOrder</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-warning"
+                                    onclick="openEdit(@dt.Id, '@dt.Name.Replace("'", "\\'"))', @dt.DisplayOrder)">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <form asp-action="DeleteDocType" method="post" style="display:inline"
+                                  onsubmit="return confirm('حذف نوع الوثيقة؟')">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@dt.Id"/>
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="dtModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="SaveDocType" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" id="dtId" value="0"/>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="dtModalTitle">إضافة نوع وثيقة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">الاسم <span class="text-danger">*</span></label>
+                        <input type="text" name="name" id="dtName" class="form-control" required/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">الترتيب</label>
+                        <input type="number" name="displayOrder" id="dtOrder" class="form-control"
+                               value="1" min="1"/>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function openAdd() {
+    document.getElementById('dtId').value = '0';
+    document.getElementById('dtName').value = '';
+    document.getElementById('dtOrder').value = '1';
+    document.getElementById('dtModalTitle').textContent = 'إضافة نوع وثيقة';
+}
+
+function openEdit(id, name, order) {
+    document.getElementById('dtId').value = id;
+    document.getElementById('dtName').value = name;
+    document.getElementById('dtOrder').value = order;
+    document.getElementById('dtModalTitle').textContent = 'تعديل نوع وثيقة';
+    new bootstrap.Modal(document.getElementById('dtModal')).show();
+}
+</script>
+}

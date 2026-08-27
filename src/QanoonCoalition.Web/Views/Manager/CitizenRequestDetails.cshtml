@@ -1,0 +1,374 @@
+@model QanoonCoalition.Web.Models.CitizenRequest
+@{
+    ViewData["Title"] = $"تفاصيل الطلب {Model.RequestCode}";
+    var allStatuses = (IList<QanoonCoalition.Web.Models.CitizenRequestStatus>)ViewBag.Statuses;
+}
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+        <h4 class="mb-0">
+            <i class="fas fa-file-alt me-2 text-primary"></i>
+            @Model.RequestCode
+        </h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 small">
+                <li class="breadcrumb-item"><a asp-action="CitizenRequests">طلبات المواطنين</a></li>
+                <li class="breadcrumb-item active">@Model.RequestCode</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="EditCitizenRequest" asp-route-id="@Model.Id"
+           class="btn btn-warning btn-sm">
+            <i class="fas fa-edit me-1"></i>تعديل
+        </a>
+        <form asp-action="DeleteCitizenRequest" method="post" style="display:inline"
+              onsubmit="return confirm('هل تريد حذف هذا الطلب نهائياً؟')">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id"/>
+            <button type="submit" class="btn btn-danger btn-sm">
+                <i class="fas fa-trash me-1"></i>حذف
+            </button>
+        </form>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+}
+
+<div class="row g-3">
+    <div class="col-lg-8">
+
+        <!-- بيانات مقدم الطلب -->
+        <div class="card mb-3">
+            <div class="card-header fw-600">
+                <i class="fas fa-user me-2"></i>بيانات مقدم الطلب
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="text-muted small">الاسم الكامل</div>
+                        <div class="fw-600 fs-5">@Model.ApplicantName</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small">رقم الهاتف</div>
+                        <div class="fw-600">@Model.ApplicantPhone</div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.ApplicantEmail))
+                    {
+                        <div class="col-md-6">
+                            <div class="text-muted small">البريد الإلكتروني</div>
+                            <div>@Model.ApplicantEmail</div>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.ContactInformation))
+                    {
+                        <div class="col-md-6">
+                            <div class="text-muted small">معلومات اتصال إضافية</div>
+                            <div>@Model.ContactInformation</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- تفاصيل الطلب -->
+        <div class="card mb-3">
+            <div class="card-header fw-600">
+                <i class="fas fa-file-alt me-2"></i>تفاصيل الطلب
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="text-muted small">الموضوع</div>
+                    <div class="fw-600 fs-5">@Model.RequestSubject</div>
+                </div>
+                <div class="mb-3">
+                    <div class="text-muted small">التفاصيل</div>
+                    <div class="border rounded p-3 bg-light" style="white-space:pre-wrap">@Model.RequestDetails</div>
+                </div>
+                <div class="row g-3">
+                    @if (Model.ReceivedByMember != null)
+                    {
+                        <div class="col-md-6">
+                            <div class="text-muted small">مستلم الطلب</div>
+                            <div class="fw-600">@Model.ReceivedByMember.FullName</div>
+                        </div>
+                    }
+                    @if (Model.Destination != null)
+                    {
+                        <div class="col-md-6">
+                            <div class="text-muted small">الجهة الموجهة إليها</div>
+                            <div class="fw-600">@Model.Destination.Name</div>
+                            @if (!string.IsNullOrEmpty(Model.DestinationSubText))
+                            {
+                                <div class="text-muted small">@Model.DestinationSubText</div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- المرفقات -->
+        <div class="card mb-3">
+            <div class="card-header fw-600 d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-paperclip me-2"></i>المرفقات (@Model.Attachments.Count)</span>
+                <button type="button" class="btn btn-sm btn-outline-success"
+                        data-bs-toggle="modal" data-bs-target="#addAttachModal">
+                    <i class="fas fa-plus me-1"></i>إضافة مرفق
+                </button>
+            </div>
+            @if (Model.Attachments.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>اسم الملف</th>
+                                <th>نوع الوثيقة</th>
+                                <th>الحجم</th>
+                                <th>بواسطة</th>
+                                <th>التاريخ</th>
+                                <th class="text-center">تنزيل</th>
+                                <th class="text-center">حذف</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var att in Model.Attachments)
+                            {
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-file me-1 text-muted"></i>@att.FileName
+                                    </td>
+                                    <td>
+                                        @if (att.DocumentType != null)
+                                        {
+                                            <span class="badge bg-secondary">@att.DocumentType.Name</span>
+                                        }
+                                    </td>
+                                    <td class="small text-muted">@((att.FileSize / 1024.0).ToString("F1")) KB</td>
+                                    <td class="small">@att.UploadedByUser.FullName</td>
+                                    <td class="small">@att.UploadedAt.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                                    <td class="text-center">
+                                        <a href="@att.FilePath" target="_blank"
+                                           class="btn btn-sm btn-outline-primary" title="تنزيل">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                    </td>
+                                    <td class="text-center">
+                                        <form asp-action="DeleteCitizenRequestAttachment" method="post"
+                                              onsubmit="return confirm('حذف المرفق؟')">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="attachmentId" value="@att.Id"/>
+                                            <input type="hidden" name="requestId" value="@Model.Id"/>
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="card-body text-center text-muted py-3">
+                    <i class="fas fa-paperclip me-1"></i>لا توجد مرفقات
+                </div>
+            }
+        </div>
+
+    </div>
+
+    <!-- الشريط الجانبي -->
+    <div class="col-lg-4">
+
+        <!-- الحالة -->
+        <div class="card mb-3">
+            <div class="card-header fw-600">
+                <i class="fas fa-flag me-2"></i>الحالة الحالية
+            </div>
+            <div class="card-body">
+                <div class="mb-3 text-center">
+                    <span class="badge bg-@Model.Status.ColorClass fs-6 px-3 py-2">
+                        @Model.Status.Name
+                    </span>
+                </div>
+                <hr/>
+                <div class="text-muted small mb-2">تغيير الحالة:</div>
+                <form asp-action="ChangeCitizenRequestStatus" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id"/>
+                    <div class="mb-2">
+                        <select name="newStatusId" class="form-select form-select-sm" id="newStatusSelect"
+                                onchange="toggleAnswerDate(this.value)">
+                            @foreach (var s in allStatuses)
+                            {
+                                if (s.Id == Model.StatusId)
+                                {
+                                    <option value="@s.Id" selected>@s.Name</option>
+                                }
+                                else
+                                {
+                                    <option value="@s.Id">@s.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-2" id="answerDateRow" style="display:none">
+                        <label class="form-label small">تاريخ الإجابة (اختياري)</label>
+                        <input type="datetime-local" name="overrideDate" class="form-control form-control-sm"/>
+                        <div class="form-text">اتركه فارغاً لتسجيل التاريخ الحالي</div>
+                    </div>
+                    <div class="mb-2">
+                        <textarea name="notes" class="form-control form-control-sm" rows="2"
+                                  placeholder="ملاحظات (اختياري)"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="fas fa-exchange-alt me-1"></i>تطبيق التغيير
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- بيانات الطلب -->
+        <div class="card mb-3">
+            <div class="card-header fw-600">
+                <i class="fas fa-info-circle me-2"></i>بيانات الطلب
+            </div>
+            <div class="card-body small">
+                <div class="row g-2">
+                    <div class="col-6 text-muted">كود الطلب</div>
+                    <div class="col-6"><code>@Model.RequestCode</code></div>
+
+                    <div class="col-6 text-muted">تاريخ الطلب</div>
+                    <div class="col-6">@Model.RequestDate.ToLocalTime().ToString("dd/MM/yyyy")</div>
+
+                    @if (Model.SentDate.HasValue)
+                    {
+                        <div class="col-6 text-muted">تاريخ الإرسال</div>
+                        <div class="col-6">@Model.SentDate.Value.ToLocalTime().ToString("dd/MM/yyyy")</div>
+                    }
+                    @if (Model.AnswerDate.HasValue)
+                    {
+                        <div class="col-6 text-muted">تاريخ الإجابة</div>
+                        <div class="col-6">@Model.AnswerDate.Value.ToLocalTime().ToString("dd/MM/yyyy")</div>
+                    }
+
+                    <div class="col-6 text-muted">أضيف بواسطة</div>
+                    <div class="col-6">@Model.CreatedByUser.FullName</div>
+
+                    <div class="col-6 text-muted">تاريخ الإنشاء</div>
+                    <div class="col-6">@Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</div>
+
+                    <div class="col-6 text-muted">آخر تعديل</div>
+                    <div class="col-6">@Model.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- سجل الحالات -->
+        @if (Model.StatusHistory.Any())
+        {
+            <div class="card">
+                <div class="card-header fw-600">
+                    <i class="fas fa-history me-2"></i>سجل الحالات
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        @foreach (var h in Model.StatusHistory.OrderByDescending(x => x.ChangedAt))
+                        {
+                            <li class="list-group-item py-2 px-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        @if (h.FromStatus != null)
+                                        {
+                                            <span class="badge bg-secondary me-1">@h.FromStatus.Name</span>
+                                            <i class="fas fa-arrow-left text-muted mx-1"></i>
+                                        }
+                                        <span class="badge bg-@h.ToStatus.ColorClass">@h.ToStatus.Name</span>
+                                    </div>
+                                    <small class="text-muted">@h.ChangedAt.ToLocalTime().ToString("dd/MM HH:mm")</small>
+                                </div>
+                                @if (!string.IsNullOrEmpty(h.Notes))
+                                {
+                                    <div class="text-muted small mt-1">@h.Notes</div>
+                                }
+                                <div class="text-muted" style="font-size:.75rem">@h.ChangedByUser.FullName</div>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Modal إضافة مرفق -->
+<div class="modal fade" id="addAttachModal" tabindex="-1" aria-labelledby="addAttachModalLabel">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="EditCitizenRequest" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <!-- نرسل باقي بيانات الطلب الموجودة -->
+                <input type="hidden" name="Id" value="@Model.Id"/>
+                <input type="hidden" name="ApplicantName" value="@Model.ApplicantName"/>
+                <input type="hidden" name="ApplicantPhone" value="@Model.ApplicantPhone"/>
+                <input type="hidden" name="RequestSubject" value="@Model.RequestSubject"/>
+                <input type="hidden" name="RequestDetails" value="@Model.RequestDetails"/>
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addAttachModalLabel">إضافة مرفق جديد</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">اختر الملف</label>
+                        <input type="file" name="attachments" class="form-control"
+                               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls" required/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">نوع الوثيقة</label>
+                        <select name="docTypeIds" class="form-select">
+                            <option value="">— اختر نوع الوثيقة —</option>
+                            @foreach (var dt in (IList<QanoonCoalition.Web.Models.DocumentType>)ViewBag.Statuses == null
+                                ? new List<QanoonCoalition.Web.Models.DocumentType>()
+                                : new List<QanoonCoalition.Web.Models.DocumentType>())
+                            {
+                                <option value="@dt.Id">@dt.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">رفع الملف</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+var answerStatusNames = ['إجابة عنه'];
+
+function toggleAnswerDate(statusId) {
+    var sel = document.getElementById('newStatusSelect');
+    var txt = sel.options[sel.selectedIndex].text.trim();
+    var row = document.getElementById('answerDateRow');
+    row.style.display = answerStatusNames.includes(txt) ? '' : 'none';
+}
+toggleAnswerDate();
+</script>
+}

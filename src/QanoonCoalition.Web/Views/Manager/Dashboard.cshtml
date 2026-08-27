@@ -128,8 +128,8 @@
 @section Scripts {
 <script>
 function copyJoinLink() {
-    const txt = document.getElementById('joinLinkMgr').value;
-    navigator.clipboard.writeText(window.location.origin + txt);
+    const txt = document.getElementById('joinLinkMgr').value.trim();
+    navigator.clipboard.writeText(txt);
     alert('تم نسخ الرابط!');
 }
 </script>

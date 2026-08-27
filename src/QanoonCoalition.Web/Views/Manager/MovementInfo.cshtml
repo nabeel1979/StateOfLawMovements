@@ -34,7 +34,7 @@
                 <div class="text-muted mb-1" style="font-size:.8rem">رابط صفحة الانضمام العامة</div>
                 <div class="input-group">
                     <input type="text" class="form-control" id="pubLink" value="http://form.gcc.iq/join/@Model?.PublicToken" readonly/>
-                    <button class="btn btn-outline-primary" onclick="navigator.clipboard.writeText(window.location.origin+document.getElementById('pubLink').value);alert('تم النسخ!')">
+                    <button class="btn btn-outline-primary" onclick="navigator.clipboard.writeText(document.getElementById('pubLink').value.trim());alert('تم النسخ!')">
                         <i class="fas fa-copy"></i>
                     </button>
                     <a href="http://form.gcc.iq/join/@Model?.PublicToken" target="_blank" class="btn btn-outline-success">

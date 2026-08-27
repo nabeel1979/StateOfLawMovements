@@ -18,10 +18,13 @@ public class ManagerController : Controller
     private readonly IAuditLogService _audit;
     private readonly SystemConstantService _sysConst;
     private readonly MemberFilterOptionsService _filterOptions;
+    private readonly ICitizenRequestService _crSvc;
+    private readonly IWebHostEnvironment _env;
 
     public ManagerController(AppDbContext db, IMemberService members, IJoinRequestService requests,
         IMovementService movements, IAuditLogService audit, SystemConstantService sysConst,
-        MemberFilterOptionsService filterOptions)
+        MemberFilterOptionsService filterOptions, ICitizenRequestService crSvc,
+        IWebHostEnvironment env)
     {
         _db = db;
         _members = members;
@@ -30,6 +33,8 @@ public class ManagerController : Controller
         _audit = audit;
         _sysConst = sysConst;
         _filterOptions = filterOptions;
+        _crSvc = crSvc;
+        _env = env;
     }
 
     private int GetMovementId() =>
@@ -423,4 +428,359 @@ public class ManagerController : Controller
         var movement = await _movements.GetByIdAsync(GetMovementId());
         return View(movement);
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // وحدة طلبات المواطنين
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // ─── قائمة الطلبات ───────────────────────────────────────────────────────
+    [HttpGet]
+    public async Task<IActionResult> CitizenRequests(
+        string? search, int? statusId, int? destinationId,
+        int? receivedByMemberId, int? documentTypeId,
+        DateTime? fromDate, DateTime? toDate, int page = 1)
+    {
+        var movId = GetMovementId();
+        var filter = new CitizenRequestFilter
+        {
+            Search = search, StatusId = statusId,
+            DestinationId = destinationId, ReceivedByMemberId = receivedByMemberId,
+            DocumentTypeId = documentTypeId, FromDate = fromDate, ToDate = toDate
+        };
+        var (items, total) = await _crSvc.GetListAsync(movId, filter, page, 20);
+
+        ViewBag.Filter = filter;
+        ViewBag.Page = page;
+        ViewBag.TotalPages = (int)Math.Ceiling(total / 20.0);
+        ViewBag.Total = total;
+        ViewBag.Statuses = await _crSvc.GetStatusesAsync();
+        ViewBag.Destinations = await _crSvc.GetDestinationsAsync();
+        ViewBag.DocumentTypes = await _crSvc.GetDocumentTypesAsync();
+        ViewBag.Members = await _db.Members
+            .Where(m => m.MovementId == movId)
+            .OrderBy(m => m.FullName)
+            .Select(m => new { m.Id, m.FullName })
+            .ToListAsync();
+
+        return View(items);
+    }
+
+    // ─── إضافة طلب جديد ──────────────────────────────────────────────────────
+    [HttpGet]
+    public async Task<IActionResult> CreateCitizenRequest()
+    {
+        await PopulateCrViewBag();
+        return View(new CitizenRequest());
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateCitizenRequest(
+        CitizenRequest model, List<IFormFile>? attachments, List<int?>? docTypeIds)
+    {
+        ModelState.Remove(nameof(CitizenRequest.RequestCode));
+        ModelState.Remove(nameof(CitizenRequest.StatusId));
+        ModelState.Remove(nameof(CitizenRequest.CreatedByUserId));
+
+        if (!ModelState.IsValid)
+        {
+            await PopulateCrViewBag();
+            return View(model);
+        }
+
+        var movId = GetMovementId();
+        model.MovementId = movId;
+
+        // التحقق أن مستلم الطلب تابع لنفس الحركة
+        if (model.ReceivedByMemberId.HasValue)
+        {
+            var ok = await _db.Members.AnyAsync(m =>
+                m.Id == model.ReceivedByMemberId && m.MovementId == movId);
+            if (!ok) model.ReceivedByMemberId = null;
+        }
+
+        var created = await _crSvc.CreateAsync(model, GetUserId());
+
+        // حفظ المرفقات
+        if (attachments != null)
+            await SaveAttachmentsAsync(attachments, docTypeIds, created.Id, movId);
+
+        TempData["Success"] = "تم إنشاء الطلب بنجاح";
+        return RedirectToAction(nameof(CitizenRequestDetails), new { id = created.Id });
+    }
+
+    // ─── تفاصيل الطلب ────────────────────────────────────────────────────────
+    public async Task<IActionResult> CitizenRequestDetails(int id)
+    {
+        var movId = GetMovementId();
+        var request = await _crSvc.GetByIdAsync(id, movId);
+        if (request == null) return NotFound();
+
+        ViewBag.Statuses = await _crSvc.GetStatusesAsync();
+        ViewBag.CurrentStatusId = request.StatusId;
+        return View(request);
+    }
+
+    // ─── تعديل الطلب ─────────────────────────────────────────────────────────
+    [HttpGet]
+    public async Task<IActionResult> EditCitizenRequest(int id)
+    {
+        var movId = GetMovementId();
+        var request = await _crSvc.GetByIdAsync(id, movId);
+        if (request == null) return NotFound();
+        await PopulateCrViewBag();
+        return View(request);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditCitizenRequest(
+        CitizenRequest model, List<IFormFile>? attachments, List<int?>? docTypeIds)
+    {
+        ModelState.Remove(nameof(CitizenRequest.RequestCode));
+        ModelState.Remove(nameof(CitizenRequest.StatusId));
+        ModelState.Remove(nameof(CitizenRequest.CreatedByUserId));
+
+        var movId = GetMovementId();
+        var existing = await _db.CitizenRequests
+            .FirstOrDefaultAsync(r => r.Id == model.Id && r.MovementId == movId);
+        if (existing == null) return NotFound();
+
+        if (!ModelState.IsValid)
+        {
+            await PopulateCrViewBag();
+            return View(model);
+        }
+
+        // التحقق من مستلم الطلب
+        if (model.ReceivedByMemberId.HasValue)
+        {
+            var ok = await _db.Members.AnyAsync(m =>
+                m.Id == model.ReceivedByMemberId && m.MovementId == movId);
+            if (!ok) model.ReceivedByMemberId = null;
+        }
+
+        // نقل القيم القابلة للتعديل
+        existing.ApplicantName = model.ApplicantName;
+        existing.ApplicantPhone = model.ApplicantPhone;
+        existing.ApplicantEmail = model.ApplicantEmail;
+        existing.ContactInformation = model.ContactInformation;
+        existing.RequestSubject = model.RequestSubject;
+        existing.RequestDetails = model.RequestDetails;
+        existing.ReceivedByMemberId = model.ReceivedByMemberId;
+        existing.DestinationId = model.DestinationId;
+        existing.DestinationSubText = model.DestinationSubText;
+        existing.AnswerDate = model.AnswerDate;
+        existing.UpdatedAt = DateTime.UtcNow;
+
+        await _crSvc.UpdateAsync(existing, GetUserId());
+
+        if (attachments != null)
+            await SaveAttachmentsAsync(attachments, docTypeIds, existing.Id, movId);
+
+        TempData["Success"] = "تم حفظ التعديلات";
+        return RedirectToAction(nameof(CitizenRequestDetails), new { id = existing.Id });
+    }
+
+    // ─── تغيير الحالة ────────────────────────────────────────────────────────
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChangeCitizenRequestStatus(
+        int id, int newStatusId, string? notes, DateTime? overrideDate)
+    {
+        var movId = GetMovementId();
+        try
+        {
+            await _crSvc.ChangeStatusAsync(id, movId, newStatusId, GetUserId(), notes, overrideDate);
+            TempData["Success"] = "تم تغيير حالة الطلب";
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = ex.Message;
+        }
+        return RedirectToAction(nameof(CitizenRequestDetails), new { id });
+    }
+
+    // ─── حذف الطلب ───────────────────────────────────────────────────────────
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteCitizenRequest(int id)
+    {
+        await _crSvc.DeleteAsync(id, GetMovementId());
+        TempData["Success"] = "تم حذف الطلب";
+        return RedirectToAction(nameof(CitizenRequests));
+    }
+
+    // ─── حذف مرفق ────────────────────────────────────────────────────────────
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteCitizenRequestAttachment(int attachmentId, int requestId)
+    {
+        await _crSvc.DeleteAttachmentAsync(attachmentId, GetMovementId());
+        TempData["Success"] = "تم حذف المرفق";
+        return RedirectToAction(nameof(CitizenRequestDetails), new { id = requestId });
+    }
+
+    // ─── إدارة الجهات ────────────────────────────────────────────────────────
+    public async Task<IActionResult> Destinations()
+    {
+        var list = await _db.RequestDestinations
+            .OrderBy(d => d.DisplayOrder).ThenBy(d => d.Name)
+            .ToListAsync();
+        return View(list);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveDestination(int id, string name, string? type, int displayOrder)
+    {
+        if (id == 0)
+        {
+            _db.RequestDestinations.Add(new RequestDestination
+            {
+                Name = name, Type = type, DisplayOrder = displayOrder, IsActive = true
+            });
+        }
+        else
+        {
+            var dest = await _db.RequestDestinations.FindAsync(id);
+            if (dest == null) return NotFound();
+            dest.Name = name; dest.Type = type; dest.DisplayOrder = displayOrder;
+        }
+        await _db.SaveChangesAsync();
+        TempData["Success"] = id == 0 ? "تمت الإضافة" : "تم الحفظ";
+        return RedirectToAction(nameof(Destinations));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteDestination(int id)
+    {
+        var dest = await _db.RequestDestinations.FindAsync(id);
+        if (dest != null) { dest.IsActive = false; await _db.SaveChangesAsync(); }
+        TempData["Success"] = "تم الحذف";
+        return RedirectToAction(nameof(Destinations));
+    }
+
+    // ─── إدارة أنواع الوثائق ─────────────────────────────────────────────────
+    public async Task<IActionResult> DocTypes()
+    {
+        var list = await _db.DocumentTypes
+            .Where(d => d.IsActive)
+            .OrderBy(d => d.DisplayOrder)
+            .ToListAsync();
+        return View(list);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveDocType(int id, string name, int displayOrder)
+    {
+        if (id == 0)
+        {
+            _db.DocumentTypes.Add(new DocumentType
+            { Name = name, DisplayOrder = displayOrder, IsActive = true });
+        }
+        else
+        {
+            var dt = await _db.DocumentTypes.FindAsync(id);
+            if (dt == null) return NotFound();
+            dt.Name = name; dt.DisplayOrder = displayOrder;
+        }
+        await _db.SaveChangesAsync();
+        TempData["Success"] = id == 0 ? "تمت الإضافة" : "تم الحفظ";
+        return RedirectToAction(nameof(DocTypes));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteDocType(int id)
+    {
+        var dt = await _db.DocumentTypes.FindAsync(id);
+        if (dt != null) { dt.IsActive = false; await _db.SaveChangesAsync(); }
+        TempData["Success"] = "تم الحذف";
+        return RedirectToAction(nameof(DocTypes));
+    }
+
+    // ─── إدارة حالات الطلب ───────────────────────────────────────────────────
+    public async Task<IActionResult> RequestStatuses()
+    {
+        var list = await _db.CitizenRequestStatuses
+            .Where(s => s.IsActive)
+            .OrderBy(s => s.DisplayOrder)
+            .ToListAsync();
+        return View(list);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveRequestStatus(int id, string name, string colorClass, int displayOrder)
+    {
+        if (id == 0)
+        {
+            _db.CitizenRequestStatuses.Add(new CitizenRequestStatus
+            { Name = name, ColorClass = colorClass, DisplayOrder = displayOrder, IsActive = true });
+        }
+        else
+        {
+            var st = await _db.CitizenRequestStatuses.FindAsync(id);
+            if (st == null) return NotFound();
+            st.Name = name; st.ColorClass = colorClass; st.DisplayOrder = displayOrder;
+        }
+        await _db.SaveChangesAsync();
+        TempData["Success"] = id == 0 ? "تمت الإضافة" : "تم الحفظ";
+        return RedirectToAction(nameof(RequestStatuses));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteRequestStatus(int id)
+    {
+        var st = await _db.CitizenRequestStatuses.FindAsync(id);
+        if (st != null && !st.IsDefault)
+        {
+            st.IsActive = false;
+            await _db.SaveChangesAsync();
+        }
+        TempData["Success"] = "تم الحذف";
+        return RedirectToAction(nameof(RequestStatuses));
+    }
+
+    // ─── CR Helpers ───────────────────────────────────────────────────────────
+    private async Task PopulateCrViewBag()
+    {
+        var movId = GetMovementId();
+        ViewBag.Statuses = await _crSvc.GetStatusesAsync();
+        ViewBag.Destinations = await _crSvc.GetDestinationsAsync();
+        ViewBag.DocTypes = await _crSvc.GetDocumentTypesAsync();
+        ViewBag.Members = await _db.Members
+            .Where(m => m.MovementId == movId)
+            .OrderBy(m => m.FullName)
+            .Select(m => new { m.Id, m.FullName })
+            .ToListAsync();
+    }
+
+    private async Task SaveAttachmentsAsync(
+        List<IFormFile> files, List<int?>? docTypeIds, int requestId, int movId)
+    {
+        var uploadsDir = Path.Combine(_env.WebRootPath, "uploads", "citizen-requests", movId.ToString());
+        Directory.CreateDirectory(uploadsDir);
+
+        for (int i = 0; i < files.Count; i++)
+        {
+            var file = files[i];
+            if (file.Length == 0) continue;
+
+            var ext = Path.GetExtension(file.FileName);
+            var savedName = $"{Guid.NewGuid()}{ext}";
+            var fullPath = Path.Combine(uploadsDir, savedName);
+
+            using var fs = new FileStream(fullPath, FileMode.Create);
+            await file.CopyToAsync(fs);
+
+            var relativePath = $"/uploads/citizen-requests/{movId}/{savedName}";
+            var docTypeId = docTypeIds != null && i < docTypeIds.Count ? docTypeIds[i] : null;
+
+            await _crSvc.AddAttachmentAsync(new CitizenRequestAttachment
+            {
+                CitizenRequestId = requestId,
+                FileName = file.FileName,
+                FilePath = relativePath,
+                ContentType = file.ContentType,
+                FileSize = file.Length,
+                DocumentTypeId = docTypeId,
+                UploadedByUserId = GetUserId()
+            });
+        }
+    }
+
 }

@@ -16,6 +16,14 @@ public class AppDbContext : DbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<SystemConstant> SystemConstants => Set<SystemConstant>();
 
+    // ─── وحدة طلبات المواطنين ─────────────────────────────────────────────────
+    public DbSet<CitizenRequest> CitizenRequests => Set<CitizenRequest>();
+    public DbSet<RequestDestination> RequestDestinations => Set<RequestDestination>();
+    public DbSet<CitizenRequestStatus> CitizenRequestStatuses => Set<CitizenRequestStatus>();
+    public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
+    public DbSet<CitizenRequestAttachment> CitizenRequestAttachments => Set<CitizenRequestAttachment>();
+    public DbSet<CitizenRequestStatusHistory> CitizenRequestStatusHistory => Set<CitizenRequestStatusHistory>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -27,5 +35,13 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration(new MovementConstantConfiguration());
         modelBuilder.ApplyConfiguration(new AuditLogConfiguration());
         modelBuilder.ApplyConfiguration(new SystemConstantConfiguration());
+
+        // وحدة طلبات المواطنين
+        modelBuilder.ApplyConfiguration(new CitizenRequestConfiguration());
+        modelBuilder.ApplyConfiguration(new RequestDestinationConfiguration());
+        modelBuilder.ApplyConfiguration(new CitizenRequestStatusConfiguration());
+        modelBuilder.ApplyConfiguration(new DocumentTypeConfiguration());
+        modelBuilder.ApplyConfiguration(new CitizenRequestAttachmentConfiguration());
+        modelBuilder.ApplyConfiguration(new CitizenRequestStatusHistoryConfiguration());
     }
 }

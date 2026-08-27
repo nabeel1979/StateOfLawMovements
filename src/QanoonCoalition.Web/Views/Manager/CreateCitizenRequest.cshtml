@@ -1,0 +1,208 @@
+@model QanoonCoalition.Web.Models.CitizenRequest
+@{
+    ViewData["Title"] = "إضافة طلب مواطن جديد";
+    var statuses = (IList<QanoonCoalition.Web.Models.CitizenRequestStatus>)ViewBag.Statuses;
+    var destinations = (IList<QanoonCoalition.Web.Models.RequestDestination>)ViewBag.Destinations;
+    var docTypes = (IList<QanoonCoalition.Web.Models.DocumentType>)ViewBag.DocTypes;
+    dynamic members = ViewBag.Members;
+}
+
+<div class="page-header mb-3">
+    <h4 class="mb-0"><i class="fas fa-plus-circle me-2 text-success"></i>إضافة طلب مواطن جديد</h4>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0 small">
+            <li class="breadcrumb-item"><a asp-action="CitizenRequests">طلبات المواطنين</a></li>
+            <li class="breadcrumb-item active">إضافة طلب</li>
+        </ol>
+    </nav>
+</div>
+
+<form asp-action="CreateCitizenRequest" method="post" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+
+    <div class="row g-3">
+        <!-- بيانات مقدم الطلب -->
+        <div class="col-lg-8">
+            <div class="card mb-3">
+                <div class="card-header fw-600">
+                    <i class="fas fa-user me-2"></i>بيانات مقدم الطلب
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">اسم مقدم الطلب <span class="text-danger">*</span></label>
+                            <input asp-for="ApplicantName" class="form-control" placeholder="الاسم الكامل"/>
+                            <span asp-validation-for="ApplicantName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">رقم الهاتف <span class="text-danger">*</span></label>
+                            <input asp-for="ApplicantPhone" class="form-control" placeholder="07xxxxxxxxx"/>
+                            <span asp-validation-for="ApplicantPhone" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">البريد الإلكتروني <small class="text-muted">(اختياري)</small></label>
+                            <input asp-for="ApplicantEmail" class="form-control" type="email"/>
+                            <span asp-validation-for="ApplicantEmail" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">معلومات اتصال إضافية <small class="text-muted">(اختياري)</small></label>
+                            <input asp-for="ContactInformation" class="form-control" placeholder="عنوان، شبكات اجتماعية…"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- بيانات الطلب -->
+            <div class="card mb-3">
+                <div class="card-header fw-600">
+                    <i class="fas fa-file-alt me-2"></i>تفاصيل الطلب
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">موضوع الطلب <span class="text-danger">*</span></label>
+                            <input asp-for="RequestSubject" class="form-control" placeholder="أدخل موضوع الطلب"/>
+                            <span asp-validation-for="RequestSubject" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">تفاصيل الطلب <span class="text-danger">*</span></label>
+                            <textarea asp-for="RequestDetails" class="form-control" rows="5"
+                                      placeholder="اكتب تفاصيل الطلب هنا…"></textarea>
+                            <span asp-validation-for="RequestDetails" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">مستلم الطلب <small class="text-muted">(من أعضاء الحركة)</small></label>
+                            <select asp-for="ReceivedByMemberId" class="form-select">
+                                <option value="">— اختر عضواً —</option>
+                                @foreach (var m in members)
+                                {
+                                    <option value="@m.Id">@m.FullName</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- المرفقات -->
+            <div class="card mb-3">
+                <div class="card-header fw-600 d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-paperclip me-2"></i>المرفقات</span>
+                    <button type="button" class="btn btn-sm btn-outline-success" onclick="addAttachmentRow()">
+                        <i class="fas fa-plus me-1"></i>إضافة مرفق
+                    </button>
+                </div>
+                <div class="card-body" id="attachmentRows">
+                    <div class="attachment-row row g-2 mb-2" data-index="0">
+                        <div class="col-md-6">
+                            <input type="file" name="attachments" class="form-control form-control-sm"
+                                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls"/>
+                        </div>
+                        <div class="col-md-5">
+                            <select name="docTypeIds" class="form-select form-select-sm">
+                                <option value="">— نوع الوثيقة —</option>
+                                @foreach (var dt in docTypes)
+                                {
+                                    <option value="@dt.Id">@dt.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-sm btn-outline-danger w-100"
+                                    onclick="removeRow(this)" title="حذف">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-muted small">
+                    الملفات المسموح بها: PDF, Word, Excel, JPG, PNG
+                </div>
+            </div>
+        </div>
+
+        <!-- الشريط الجانبي -->
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-header fw-600">
+                    <i class="fas fa-building me-2"></i>الجهة الموجه إليها
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">الجهة</label>
+                        <select asp-for="DestinationId" class="form-select" onchange="filterByType()">
+                            <option value="">— اختر الجهة —</option>
+                            @foreach (var g in destinations.GroupBy(d => d.Type))
+                            {
+                                <optgroup label="@g.Key">
+                                    @foreach (var d in g)
+                                    {
+                                        <option value="@d.Id">@d.Name</option>
+                                    }
+                                </optgroup>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">نص فرعي <small class="text-muted">(اختياري)</small></label>
+                        <input asp-for="DestinationSubText" class="form-control"
+                               placeholder="مثال: مديرية الأحوال المدنية…"/>
+                        <div class="form-text">مثال: وزارة الداخلية → مديرية الجوازات</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="alert alert-info small mb-3">
+                        <i class="fas fa-info-circle me-1"></i>
+                        سيتم تعيين الحالة تلقائياً إلى <strong>مستلم</strong>
+                        ورقم الطلب يُولَّد تلقائياً.
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save me-1"></i>حفظ الطلب
+                        </button>
+                        <a asp-action="CitizenRequests" class="btn btn-outline-secondary">إلغاء</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+var docTypeOptions = `@foreach (var dt in docTypes)
+{<text><option value="@dt.Id">@dt.Name</option></text>}`;
+
+function addAttachmentRow() {
+    var container = document.getElementById('attachmentRows');
+    var row = document.createElement('div');
+    row.className = 'attachment-row row g-2 mb-2';
+    row.innerHTML = `
+        <div class="col-md-6">
+            <input type="file" name="attachments" class="form-control form-control-sm"
+                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls"/>
+        </div>
+        <div class="col-md-5">
+            <select name="docTypeIds" class="form-select form-select-sm">
+                <option value="">— نوع الوثيقة —</option>
+                ${docTypeOptions}
+            </select>
+        </div>
+        <div class="col-md-1">
+            <button type="button" class="btn btn-sm btn-outline-danger w-100"
+                    onclick="removeRow(this)" title="حذف">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>`;
+    container.appendChild(row);
+}
+
+function removeRow(btn) {
+    var rows = document.querySelectorAll('.attachment-row');
+    if (rows.length > 1) btn.closest('.attachment-row').remove();
+}
+</script>
+}

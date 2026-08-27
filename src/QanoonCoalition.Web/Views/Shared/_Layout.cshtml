@@ -146,16 +146,46 @@
                         </div>
                     </div>
 
-                    <!-- مجموعة: الطلبات -->
+                    <!-- مجموعة: طلبات الانضمام -->
                     <div class="nav-group @(act == "JoinRequests" || act == "RequestDetails" ? "open" : "open")" id="group-mgr-requests">
                         <button class="nav-group-header" onclick="toggleGroup('group-mgr-requests')">
-                            <span><i class="fas fa-inbox me-2"></i>الطلبات</span>
+                            <span><i class="fas fa-inbox me-2"></i>طلبات الانضمام</span>
                             <i class="fas fa-chevron-down nav-chevron"></i>
                         </button>
                         <div class="nav-group-body">
                             <a asp-controller="Manager" asp-action="JoinRequests"
                                class="nav-item nav-sub @(act == "JoinRequests" ? "active" : "")">
-                                <i class="fas fa-inbox"></i><span>طلبات الانضمام</span>
+                                <i class="fas fa-inbox"></i><span>قائمة الطلبات</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- مجموعة: طلبات المواطنين -->
+                    <div class="nav-group open" id="group-mgr-citizen">
+                        <button class="nav-group-header" onclick="toggleGroup('group-mgr-citizen')">
+                            <span><i class="fas fa-file-alt me-2"></i>طلبات المواطنين</span>
+                            <i class="fas fa-chevron-down nav-chevron"></i>
+                        </button>
+                        <div class="nav-group-body">
+                            <a asp-controller="Manager" asp-action="CitizenRequests"
+                               class="nav-item nav-sub @(act == "CitizenRequests" || act == "CitizenRequestDetails" ? "active" : "")">
+                                <i class="fas fa-list"></i><span>جميع الطلبات</span>
+                            </a>
+                            <a asp-controller="Manager" asp-action="CreateCitizenRequest"
+                               class="nav-item nav-sub @(act == "CreateCitizenRequest" ? "active" : "")">
+                                <i class="fas fa-plus-circle"></i><span>إضافة طلب جديد</span>
+                            </a>
+                            <a asp-controller="Manager" asp-action="Destinations"
+                               class="nav-item nav-sub @(act == "Destinations" ? "active" : "")">
+                                <i class="fas fa-building"></i><span>الجهات</span>
+                            </a>
+                            <a asp-controller="Manager" asp-action="DocTypes"
+                               class="nav-item nav-sub @(act == "DocTypes" ? "active" : "")">
+                                <i class="fas fa-file-signature"></i><span>أنواع الوثائق</span>
+                            </a>
+                            <a asp-controller="Manager" asp-action="RequestStatuses"
+                               class="nav-item nav-sub @(act == "RequestStatuses" ? "active" : "")">
+                                <i class="fas fa-flag"></i><span>حالات الطلب</span>
                             </a>
                         </div>
                     </div>
