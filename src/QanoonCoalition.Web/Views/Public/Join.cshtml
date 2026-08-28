@@ -23,7 +23,7 @@
             errorTabIndex = 3;
         else if (errKeys.Any(k => k == "ServiceStartDate" || k == "ServiceYears"))
             errorTabIndex = 4;
-        else if (errKeys.Any(k => k == "Skills" || k == "Experiences" || k == "TrainingCourses" || k == "Languages"))
+        else if (errKeys.Any(k => k == "Skills" || k == "Experiences" || k == "TrainingCourses" || k == "Languages" || k == "BenefitField"))
             errorTabIndex = 5;
         // else stays 0 (personal tab)
     }
@@ -214,16 +214,16 @@
                     }
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">الجنس</label>
-                    <select name="Gender" class="form-select">
+                    <label class="form-label">الجنس <span class="text-danger">*</span></label>
+                    <select name="Gender" class="form-select" required id="genderSel">
                         <option value="">— اختر —</option>
                         <option value="1" selected="@(Model.Gender == Gender.Male)">ذكر</option>
                         <option value="2" selected="@(Model.Gender == Gender.Female)">أنثى</option>
                     </select>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">تاريخ الميلاد</label>
-                    <input type="date" name="BirthDate" class="form-control"
+                    <label class="form-label">تاريخ الميلاد <span class="text-danger">*</span></label>
+                    <input type="date" name="BirthDate" class="form-control" required id="birthDateInput"
                            value="@(Model.BirthDate?.ToString("yyyy-MM-dd"))"/>
                 </div>
                 <div class="col-md-6">
@@ -288,8 +288,8 @@
                 </h6>
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label">المحافظة</label>
-                        <select name="Province" class="form-select" id="provinceSelect">
+                        <label class="form-label">المحافظة <span class="text-danger">*</span></label>
+                        <select name="Province" class="form-select" id="provinceSelect" required>
                             <option value="">— اختر المحافظة —</option>
                             @foreach (var p in (List<string>)(ViewBag.Provinces ?? new List<string>()))
                             {
@@ -298,16 +298,16 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">القضاء</label>
-                        <input type="text" name="District" class="form-control" value="@Model.District" maxlength="100" placeholder="اسم القضاء"/>
+                        <label class="form-label">القضاء <span class="text-danger">*</span></label>
+                        <input type="text" name="District" class="form-control" value="@Model.District" maxlength="100" placeholder="اسم القضاء" required/>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">الناحية</label>
-                        <input type="text" name="SubDistrict" class="form-control" value="@Model.SubDistrict" maxlength="100" placeholder="اسم الناحية"/>
+                        <label class="form-label">الناحية <span class="text-danger">*</span></label>
+                        <input type="text" name="SubDistrict" class="form-control" value="@Model.SubDistrict" maxlength="100" placeholder="اسم الناحية" required/>
                     </div>
                     <div class="col-12">
-                        <label class="form-label">العنوان التفصيلي</label>
-                        <textarea name="Address" class="form-control" rows="2" maxlength="500"
+                        <label class="form-label">العنوان التفصيلي <span class="text-danger">*</span></label>
+                        <textarea name="Address" class="form-control" rows="2" maxlength="500" required
                                   placeholder="الحي / الشارع / رقم الدار...">@Model.Address</textarea>
                     </div>
                 </div>
@@ -329,8 +329,8 @@
                 </h6>
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label">التحصيل الدراسي</label>
-                        <select name="EducationLevel" class="form-select">
+                        <label class="form-label">التحصيل الدراسي <span class="text-danger">*</span></label>
+                        <select name="EducationLevel" class="form-select" required>
                             <option value="">— اختر —</option>
                             @foreach (var lvl in (List<string>)(ViewBag.EducationLevels ?? new List<string>()))
                             {
@@ -339,8 +339,8 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">الاختصاص / التخصص</label>
-                        <input type="text" name="Specialization" class="form-control"
+                        <label class="form-label">الاختصاص / التخصص <span class="text-danger">*</span></label>
+                        <input type="text" name="Specialization" class="form-control" required
                                value="@Model.Specialization" maxlength="200"
                                placeholder="مثال: قانون، هندسة، طب، اقتصاد..."/>
                     </div>
@@ -363,19 +363,19 @@
                 </h6>
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label">المهنة</label>
-                        <input type="text" name="Occupation" class="form-control"
+                        <label class="form-label">المهنة <span class="text-danger">*</span></label>
+                        <input type="text" name="Occupation" class="form-control" required
                                value="@Model.Occupation" maxlength="200" placeholder="المهنة الحالية"/>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">العنوان الوظيفي</label>
-                        <input type="text" name="JobTitle" class="form-control"
+                        <label class="form-label">العنوان الوظيفي <span class="text-danger">*</span></label>
+                        <input type="text" name="JobTitle" class="form-control" required
                                value="@Model.JobTitle" maxlength="200"
                                placeholder="مثال: مدير، مهندس أول، محاسب..."/>
                     </div>
                     <div class="col-12">
-                        <label class="form-label">مكان العمل</label>
-                        <input type="text" name="WorkPlace" class="form-control"
+                        <label class="form-label">مكان العمل <span class="text-danger">*</span></label>
+                        <input type="text" name="WorkPlace" class="form-control" required
                                value="@Model.WorkPlace" maxlength="200"
                                placeholder="اسم الجهة / المؤسسة / الشركة"/>
                     </div>
@@ -427,29 +427,29 @@
                 </h6>
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label">المهارات</label>
-                        <textarea name="Skills" class="form-control" rows="2" maxlength="500"
+                        <label class="form-label">المهارات <span class="text-danger">*</span></label>
+                        <textarea name="Skills" class="form-control" rows="2" maxlength="500" required
                                   placeholder="اذكر مهاراتك...">@Model.Skills</textarea>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">الخبرات</label>
-                        <textarea name="Experiences" class="form-control" rows="2" maxlength="500"
+                        <label class="form-label">الخبرات <span class="text-danger">*</span></label>
+                        <textarea name="Experiences" class="form-control" rows="2" maxlength="500" required
                                   placeholder="اذكر خبراتك السابقة...">@Model.Experiences</textarea>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">الدورات التدريبية</label>
-                        <textarea name="TrainingCourses" class="form-control" rows="2" maxlength="500"
+                        <label class="form-label">الدورات التدريبية <span class="text-danger">*</span></label>
+                        <textarea name="TrainingCourses" class="form-control" rows="2" maxlength="500" required
                                   placeholder="الدورات التي أتممتها...">@Model.TrainingCourses</textarea>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">اللغات</label>
-                        <input type="text" name="Languages" class="form-control"
+                        <label class="form-label">اللغات <span class="text-danger">*</span></label>
+                        <input type="text" name="Languages" class="form-control" required
                                value="@Model.Languages" maxlength="200"
                                placeholder="مثال: العربية، الإنجليزية، الفارسية..."/>
                     </div>
                     <div class="col-12">
-                        <label class="form-label">مجال الاستفادة من العضو</label>
-                        <select name="BenefitField" class="form-select">
+                        <label class="form-label">مجال الاستفادة من العضو <span class="text-danger">*</span></label>
+                        <select name="BenefitField" class="form-select" required>
                             <option value="">— اختر المجال —</option>
                             @foreach (var bf in (List<string>)(ViewBag.BenefitFields ?? new List<string>()))
                             {
@@ -458,7 +458,7 @@
                         </select>
                     </div>
                     <div class="col-12">
-                        <label class="form-label">ملاحظات إضافية</label>
+                        <label class="form-label">ملاحظات إضافية <small class="text-muted">(اختياري)</small></label>
                         <textarea name="Notes" class="form-control" rows="2" maxlength="1000"
                                   placeholder="أي معلومات إضافية...">@Model.Notes</textarea>
                     </div>
@@ -501,29 +501,34 @@ document.getElementById('joinForm').addEventListener('submit', function(e) {
     var errors = [];
     var focusTab = -1;
 
-    var fullName = document.querySelector('[name="FullName"]').value.trim();
-    var phone    = document.querySelector('[name="Phone"]').value.trim();
-
-    if (!fullName) {
-        errors.push('الاسم الكامل مطلوب');
-        document.querySelector('[name="FullName"]').classList.add('is-invalid');
-        if (focusTab === -1) focusTab = 0;
-    } else {
-        document.querySelector('[name="FullName"]').classList.remove('is-invalid');
+    function req(name, label, tabIdx) {
+        var el = document.querySelector('[name="' + name + '"]');
+        if (!el) return;
+        var val = el.value.trim ? el.value.trim() : el.value;
+        if (!val) {
+            errors.push(label + ' مطلوب' + (label.slice(-1) === 'ة' ? 'ة' : ''));
+            el.classList.add('is-invalid');
+            if (focusTab === -1) focusTab = tabIdx;
+        } else {
+            el.classList.remove('is-invalid');
+        }
     }
 
-    if (!phone) {
-        errors.push('رقم الهاتف مطلوب');
-        document.querySelector('[name="Phone"]').classList.add('is-invalid');
-        if (focusTab === -1) focusTab = 0;
-    } else if (!/^07\d{9}$/.test(phone.replace(/\s/g,''))) {
+    // تاب 0 – الشخصية
+    req('FullName',  'الاسم الكامل',       0);
+    req('Gender',    'الجنس',              0);
+    req('BirthDate', 'تاريخ الميلاد',      0);
+    req('Phone',     'رقم الهاتف',         0);
+
+    // التحقق الإضافي من صيغة الهاتف
+    var phone = document.querySelector('[name="Phone"]').value.trim();
+    if (phone && !/^07\d{9}$/.test(phone.replace(/\s/g, ''))) {
         errors.push('رقم الهاتف غير صحيح (يجب أن يبدأ بـ 07 ويتكون من 11 رقم)');
         document.querySelector('[name="Phone"]').classList.add('is-invalid');
         if (focusTab === -1) focusTab = 0;
-    } else {
-        document.querySelector('[name="Phone"]').classList.remove('is-invalid');
     }
 
+    // التحقق من صيغة البريد (اختياري)
     var email = document.querySelector('[name="Email"]').value.trim();
     var emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
     if (email && !emailRegex.test(email)) {
@@ -533,6 +538,30 @@ document.getElementById('joinForm').addEventListener('submit', function(e) {
     } else {
         document.querySelector('[name="Email"]').classList.remove('is-invalid');
     }
+
+    // تاب 1 – السكن
+    req('Province',    'المحافظة',        1);
+    req('District',    'القضاء',          1);
+    req('SubDistrict', 'الناحية',         1);
+    req('Address',     'العنوان التفصيلي', 1);
+
+    // تاب 2 – العلمية
+    req('EducationLevel', 'التحصيل الدراسي',    2);
+    req('Specialization', 'الاختصاص / التخصص', 2);
+
+    // تاب 3 – المهنية
+    req('Occupation', 'المهنة',          3);
+    req('JobTitle',   'العنوان الوظيفي', 3);
+    req('WorkPlace',  'مكان العمل',      3);
+
+    // تاب 4 – الخدمة (اختياري تماماً)
+
+    // تاب 5 – الطاقات
+    req('Skills',          'المهارات',                5);
+    req('Experiences',     'الخبرات',                 5);
+    req('TrainingCourses', 'الدورات التدريبية',       5);
+    req('Languages',       'اللغات',                  5);
+    req('BenefitField',    'مجال الاستفادة من العضو', 5);
 
     if (errors.length > 0) {
         e.preventDefault();
@@ -546,7 +575,7 @@ document.getElementById('joinForm').addEventListener('submit', function(e) {
             document.getElementById('joinForm').prepend(box);
         }
         box.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i><strong>يرجى تصحيح الأخطاء التالية:</strong><ul class="mb-0 mt-2">'
-            + errors.map(function(e){ return '<li>' + e + '</li>'; }).join('')
+            + errors.map(function(er){ return '<li>' + er + '</li>'; }).join('')
             + '</ul>';
         window.scrollTo({top: document.querySelector('.join-form-card').offsetTop - 10, behavior:'smooth'});
     }
