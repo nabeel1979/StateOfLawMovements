@@ -48,7 +48,10 @@ public class JoinRequestConfiguration : IEntityTypeConfiguration<JoinRequest>
             .HasSentinel(RequestStatus.Pending);
 
         builder.Property(jr => jr.Gender)
-            .HasConversion<int>();
+            .HasConversion<int?>()
+            .IsRequired(false);
+
+        builder.Property(jr => jr.BirthDate).IsRequired(false);
 
         builder.Property(jr => jr.SubmittedAt)
             .HasDefaultValueSql("GETUTCDATE()");

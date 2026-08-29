@@ -22,10 +22,8 @@ public class JoinRequest
     [MaxLength(200)]
     public string? Email { get; set; }
 
-    [Required(ErrorMessage = "تاريخ الميلاد مطلوب")]
     public DateOnly? BirthDate { get; set; }
 
-    [Required(ErrorMessage = "الجنس مطلوب")]
     public Gender? Gender { get; set; }
 
     // ─── بيانات السكن ──────────────────────────────────────
