@@ -24,12 +24,23 @@ public class JoinRequestConfiguration : IEntityTypeConfiguration<JoinRequest>
             .IsRequired()
             .HasMaxLength(20);
 
-        builder.Property(jr => jr.Email).HasMaxLength(200);
-        builder.Property(jr => jr.Address).HasMaxLength(500);
-        builder.Property(jr => jr.Occupation).HasMaxLength(200);
-        builder.Property(jr => jr.BenefitField).HasMaxLength(500);
-        builder.Property(jr => jr.Notes).HasMaxLength(1000);
-        builder.Property(jr => jr.RejectionReason).HasMaxLength(500);
+        builder.Property(jr => jr.Email).HasMaxLength(200).IsRequired(false);
+        builder.Property(jr => jr.Address).HasMaxLength(500).IsRequired(false);
+        builder.Property(jr => jr.Province).HasMaxLength(100).IsRequired(false);
+        builder.Property(jr => jr.District).HasMaxLength(100).IsRequired(false);
+        builder.Property(jr => jr.SubDistrict).HasMaxLength(100).IsRequired(false);
+        builder.Property(jr => jr.EducationLevel).HasMaxLength(100).IsRequired(false);
+        builder.Property(jr => jr.Specialization).HasMaxLength(200).IsRequired(false);
+        builder.Property(jr => jr.Occupation).HasMaxLength(200).IsRequired(false);
+        builder.Property(jr => jr.JobTitle).HasMaxLength(200).IsRequired(false);
+        builder.Property(jr => jr.WorkPlace).HasMaxLength(200).IsRequired(false);
+        builder.Property(jr => jr.Skills).HasMaxLength(500).IsRequired(false);
+        builder.Property(jr => jr.Experiences).HasMaxLength(500).IsRequired(false);
+        builder.Property(jr => jr.TrainingCourses).HasMaxLength(500).IsRequired(false);
+        builder.Property(jr => jr.Languages).HasMaxLength(200).IsRequired(false);
+        builder.Property(jr => jr.BenefitField).HasMaxLength(500).IsRequired(false);
+        builder.Property(jr => jr.Notes).HasMaxLength(1000).IsRequired(false);
+        builder.Property(jr => jr.RejectionReason).HasMaxLength(500).IsRequired(false);
 
         builder.Property(jr => jr.Status)
             .HasConversion<int>()
