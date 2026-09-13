@@ -320,12 +320,21 @@ public static class MembersExcelExporter
         cell.Style.Border.OutsideBorderColor = XLColor.FromHtml(colorHex);
     }
 
+    private static readonly DateTime OleAutMinDate = new DateTime(1899, 12, 30);
+
     private static void SetDate(IXLCell cell, DateOnly? date)
     {
-        if (date.HasValue)
+        if (!date.HasValue) return;
+        var dt = date.Value.ToDateTime(TimeOnly.MinValue);
+        if (dt >= OleAutMinDate)
         {
-            cell.Value = date.Value.ToDateTime(TimeOnly.MinValue);
+            cell.Value = dt;
             cell.Style.DateFormat.Format = "yyyy/mm/dd";
+        }
+        else
+        {
+            // تواريخ قبل 1900 تُخزَّن كنص لأن Excel لا يدعم OLE قبلها
+            cell.Value = date.Value.ToString("yyyy/MM/dd");
         }
     }
 

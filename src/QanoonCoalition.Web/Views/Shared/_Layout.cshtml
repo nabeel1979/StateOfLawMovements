@@ -283,8 +283,10 @@ function toggleSidebar() {
         sidebar.classList.toggle('mobile-open');
         overlay.classList.toggle('active');
     } else {
-        sidebar.classList.toggle('collapsed');
+        const collapsed = sidebar.classList.toggle('collapsed');
         document.querySelector('.main-content').classList.toggle('expanded');
+        // حفظ الحالة في localStorage لتستمر بين الجلسات
+        try { localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0'); } catch(e) {}
     }
 }
 
@@ -342,6 +344,17 @@ function saveGroupState() {
 
 // استعادة حالة القوائم عند التنقل
 document.addEventListener('DOMContentLoaded', () => {
+    // ── استعادة حالة السايدبار (منكمش افتراضياً) ──
+    if (window.innerWidth > 768) {
+        const stored = localStorage.getItem('sidebarCollapsed');
+        // إذا لم تُحفظ قيمة بعد → منكمش افتراضياً
+        const shouldCollapse = stored === null ? true : stored === '1';
+        if (shouldCollapse) {
+            document.getElementById('sidebar').classList.add('collapsed');
+            document.querySelector('.main-content').classList.add('expanded');
+        }
+    }
+
     try {
         const saved = JSON.parse(sessionStorage.getItem('navGroups') || '{}');
         document.querySelectorAll('.nav-group').forEach(g => {
