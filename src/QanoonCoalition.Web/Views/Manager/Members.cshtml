@@ -18,7 +18,7 @@
         <span class="badge bg-primary ms-2">@ViewBag.Total عضو</span>
     </div>
     <div class="table-responsive">
-        <table class="table table-hover">
+        <table class="table table-hover" style="min-width:750px">
             <thead>
                 <tr>
                     <th>الرقم التسلسلي</th>
@@ -92,14 +92,34 @@
 
 @if (ViewBag.TotalPages > 1)
 {
+    int curPage   = (int)ViewBag.Page;
+    int totalPgs  = (int)ViewBag.TotalPages;
+    int window    = 3; // عدد الصفحات قبل وبعد الصفحة الحالية
+    int pFrom     = Math.Max(1, curPage - window);
+    int pTo       = Math.Min(totalPgs, curPage + window);
     <nav class="mt-3">
-        <ul class="pagination justify-content-center">
-            @for (int p = 1; p <= ViewBag.TotalPages; p++)
+        <ul class="pagination justify-content-center flex-wrap">
+            @{ var prevD = curPage == 1 ? "disabled" : ""; var nextD = curPage == totalPgs ? "disabled" : ""; }
+            <li class='page-item @prevD'><a class="page-link" href="#" onclick="mfGoToPage(@(curPage-1)); return false;"><i class="fas fa-chevron-right"></i></a></li>
+            @if (pFrom > 1)
             {
-                <li class="page-item @(p == ViewBag.Page ? "active" : "")">
-                    <a class="page-link" href="#" onclick="mfGoToPage(@p); return false;">@p</a>
-                </li>
+                <li class="page-item"><a class="page-link" href="#" onclick="mfGoToPage(1); return false;">1</a></li>
+                @if (pFrom > 2) { <li class="page-item disabled"><span class="page-link">…</span></li> }
             }
+            @for (int p = pFrom; p <= pTo; p++)
+            {
+                var pgCls = p == curPage ? "active" : "";
+                <li class='page-item @pgCls'><a class="page-link" href="#" onclick="mfGoToPage(@p); return false;">@p</a></li>
+            }
+            @if (pTo < totalPgs)
+            {
+                @if (pTo < totalPgs - 1) { <li class="page-item disabled"><span class="page-link">…</span></li> }
+                <li class="page-item"><a class="page-link" href="#" onclick="mfGoToPage(@totalPgs); return false;">@totalPgs</a></li>
+            }
+            <li class='page-item @nextD'><a class="page-link" href="#" onclick="mfGoToPage(@(curPage+1)); return false;"><i class="fas fa-chevron-left"></i></a></li>
         </ul>
+        <p class="text-center text-muted small mt-1">
+            صفحة @curPage من @totalPgs — إجمالي @ViewBag.Total سجل
+        </p>
     </nav>
 }

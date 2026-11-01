@@ -639,6 +639,29 @@ body {
 .mf-btn-export { color: #14733f; border-color: #b9dcc8; }
 .mf-btn-export:hover { background: #eaf7f0; }
 
+/* ── Page-size dropdown ── */
+.mf-pagesize-wrap {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #fff;
+    border: 1px solid #c8e6d5;
+    border-radius: 8px;
+    padding: 0 10px;
+    height: 36px;
+}
+.mf-pagesize-icon { color: var(--primary); font-size: .8rem; }
+.mf-pagesize-select {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 4px !important;
+    height: auto !important;
+    font-size: .85rem;
+    color: var(--primary-dark);
+    cursor: pointer;
+    min-width: 60px;
+}
+
 .mf-count {
     background: var(--primary);
     color: #fff;

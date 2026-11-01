@@ -17,7 +17,7 @@
 {
     <div class="app-wrapper">
         <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
+        <aside class="sidebar collapsed" id="sidebar">
             <div class="sidebar-brand">
                 <div class="brand-logo">
                     <img src="/images/logo.jpg" alt="ائتلاف دولة القانون"
@@ -130,7 +130,7 @@
                     </a>
 
                     <!-- مجموعة: الأعضاء -->
-                    <div class="nav-group @(act == "Members" || act == "AddMember" || act == "EditMember" || act == "PrintMember" ? "open" : "open")" id="group-mgr-members">
+                    <div class="nav-group @(act == "Members" || act == "AddMember" || act == "EditMember" || act == "PrintMember" || act == "Schools" ? "open" : "open")" id="group-mgr-members">
                         <button class="nav-group-header" onclick="toggleGroup('group-mgr-members')">
                             <span><i class="fas fa-users me-2"></i>الأعضاء</span>
                             <i class="fas fa-chevron-down nav-chevron"></i>
@@ -140,8 +140,13 @@
                                class="nav-item nav-sub @(act == "Members" ? "active" : "")">
                                 <i class="fas fa-users"></i><span>قائمة الأعضاء</span>
                             </a>
-                            <a asp-controller="Manager" asp-action="AddMember" class="nav-item nav-sub">
+                            <a asp-controller="Manager" asp-action="AddMember"
+                               class="nav-item nav-sub @(act == "AddMember" ? "active" : "")">
                                 <i class="fas fa-user-plus"></i><span>إضافة عضو</span>
+                            </a>
+                            <a asp-controller="Manager" asp-action="Schools"
+                               class="nav-item nav-sub @(act == "Schools" ? "active" : "")">
+                                <i class="fas fa-landmark"></i><span>المراكز الانتخابية</span>
                             </a>
                         </div>
                     </div>
@@ -211,7 +216,7 @@
         <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebarMobile()"></div>
 
         <!-- Main Content -->
-        <div class="main-content">
+        <div class="main-content expanded">
             <!-- Top Navbar -->
             <header class="top-navbar">
                 <button class="sidebar-toggle" onclick="toggleSidebar()">
@@ -285,8 +290,7 @@ function toggleSidebar() {
     } else {
         const collapsed = sidebar.classList.toggle('collapsed');
         document.querySelector('.main-content').classList.toggle('expanded');
-        // حفظ الحالة في localStorage لتستمر بين الجلسات
-        try { localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0'); } catch(e) {}
+        // لا نحفظ الحالة — الانكماش هو الوضع الافتراضي دائماً
     }
 }
 
@@ -344,16 +348,8 @@ function saveGroupState() {
 
 // استعادة حالة القوائم عند التنقل
 document.addEventListener('DOMContentLoaded', () => {
-    // ── استعادة حالة السايدبار (منكمش افتراضياً) ──
-    if (window.innerWidth > 768) {
-        const stored = localStorage.getItem('sidebarCollapsed');
-        // إذا لم تُحفظ قيمة بعد → منكمش افتراضياً
-        const shouldCollapse = stored === null ? true : stored === '1';
-        if (shouldCollapse) {
-            document.getElementById('sidebar').classList.add('collapsed');
-            document.querySelector('.main-content').classList.add('expanded');
-        }
-    }
+    // ── السايدبار منكمش دائماً عند تحميل الصفحة (بدون قراءة أي تخزين) ──
+    // يبقى على الحالة الافتراضية في HTML: collapsed + expanded
 
     try {
         const saved = JSON.parse(sessionStorage.getItem('navGroups') || '{}');

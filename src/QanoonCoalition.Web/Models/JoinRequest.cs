@@ -43,6 +43,21 @@ public class JoinRequest
     [MaxLength(500)]
     public string? Address { get; set; }
 
+    [MaxLength(50)]
+    public string? VoterNumber { get; set; }        // رقم الناخب
+
+    [MaxLength(50)]
+    public string? ElectionCenterCode { get; set; } // رقم المركز الانتخابي
+
+    [MaxLength(50)]
+    public string? ElectionSide { get; set; }       // الكرخ / الرصافة
+
+    [MaxLength(200)]
+    public string? SchoolName { get; set; }         // اسم المركز الانتخابي
+
+    [MaxLength(500)]
+    public string? SchoolAddress { get; set; }      // عنوان المركز الانتخابي
+
     // ─── البيانات العلمية ──────────────────────────────────
     [Required(ErrorMessage = "التحصيل الدراسي مطلوب")]
     [MaxLength(100)]

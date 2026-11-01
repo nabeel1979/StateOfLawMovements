@@ -49,6 +49,7 @@ public class PublicController : Controller
         ViewBag.EducationLevels = await _sysConst.GetValuesAsync(SysConst.EducationLevel);
         ViewBag.BenefitFields   = await _sysConst.GetValuesAsync(SysConst.BenefitField);
         ViewBag.Provinces       = await _sysConst.GetValuesAsync(SysConst.Province);
+        ViewBag.Schools         = await _sysConst.GetAllAsync(SysConst.School);
     }
 
     [HttpPost("join/{token}")]

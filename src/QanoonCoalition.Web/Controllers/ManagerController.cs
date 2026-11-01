@@ -59,17 +59,99 @@ public class ManagerController : Controller
         return View(movement);
     }
 
+    // ─── Electoral Centers (المراكز الانتخابية) ───────────────────────────────
+    public async Task<IActionResult> Schools(string? search, string? side, int page = 1, int pageSize = 20)
+    {
+        if (!new[] { 10, 20, 50, 100 }.Contains(pageSize)) pageSize = 20;
+        var all = await _sysConst.GetAllAsync(SysConst.School);
+        if (!string.IsNullOrWhiteSpace(side))
+            all = all.Where(s => s.GroupName == side).ToList();
+        if (!string.IsNullOrWhiteSpace(search))
+            all = all.Where(s => (s.Code ?? "").Contains(search, StringComparison.OrdinalIgnoreCase)
+                              || s.Value.Contains(search, StringComparison.OrdinalIgnoreCase)
+                              || (s.ExtraData ?? "").Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
+        var total = all.Count;
+        var totalPages = (int)Math.Ceiling(total / (double)pageSize);
+        page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+        var items = all.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        ViewBag.Search     = search ?? "";
+        ViewBag.Side       = side ?? "";
+        ViewBag.Page       = page;
+        ViewBag.PageSize   = pageSize;
+        ViewBag.TotalPages = totalPages;
+        ViewBag.Total      = total;
+        return View(items);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddSchool(string value, string? address, string? code, string? groupName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            TempData["Error"] = "يرجى إدخال اسم المركز الانتخابي.";
+            return RedirectToAction(nameof(Schools));
+        }
+        var exists = await _sysConst.ValueExistsAsync(SysConst.School, value.Trim());
+        if (exists)
+        {
+            TempData["Error"] = $"المركز الانتخابي \"{value.Trim()}\" مسجّل مسبقاً.";
+            return RedirectToAction(nameof(Schools));
+        }
+        await _sysConst.AddAsync(SysConst.School, value.Trim(),
+            string.IsNullOrWhiteSpace(address) ? null : address.Trim(),
+            string.IsNullOrWhiteSpace(code) ? null : code.Trim(),
+            string.IsNullOrWhiteSpace(groupName) ? null : groupName.Trim());
+        TempData["Success"] = $"تمت إضافة المركز \"{value.Trim()}\" بنجاح.";
+        return RedirectToAction(nameof(Schools));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditSchool(int id, string value, string? address, string? code, string? groupName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            TempData["Error"] = "يرجى إدخال اسم المركز الانتخابي.";
+            return RedirectToAction(nameof(Schools));
+        }
+        var item = await _sysConst.GetByIdAsync(id);
+        if (item == null) return NotFound();
+
+        var exists = await _sysConst.ValueExistsAsync(SysConst.School, value.Trim(), excludeId: id);
+        if (exists)
+        {
+            TempData["Error"] = $"المركز الانتخابي \"{value.Trim()}\" مسجّل مسبقاً.";
+            return RedirectToAction(nameof(Schools));
+        }
+        item.Value     = value.Trim();
+        item.ExtraData = string.IsNullOrWhiteSpace(address)   ? null : address.Trim();
+        item.Code      = string.IsNullOrWhiteSpace(code)      ? null : code.Trim();
+        item.GroupName = string.IsNullOrWhiteSpace(groupName) ? null : groupName.Trim();
+        await _sysConst.UpdateAsync(item);
+        TempData["Success"] = "تم تحديث بيانات المركز الانتخابي بنجاح.";
+        return RedirectToAction(nameof(Schools));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteSchool(int id)
+    {
+        await _sysConst.DeleteAsync(id);
+        return RedirectToAction(nameof(Schools));
+    }
+
     // ─── Members ─────────────────────────────────────────────────────────────
     public async Task<IActionResult> Members(List<MemberFilter>? filters, FilterMatch match = FilterMatch.All,
-        int page = 1)
+        int page = 1, int pageSize = 100)
     {
+        // الأحجام المسموح بها فقط
+        if (!new[] { 100, 1000, 10000 }.Contains(pageSize)) pageSize = 100;
         var movementId = GetMovementId();
-        var (items, total) = await _members.SearchAsync(movementId, filters, match, page, 20);
+        var (items, total) = await _members.SearchAsync(movementId, filters, match, page, pageSize);
         ViewBag.Filters = MemberFilterHelper.Normalize(filters);
         ViewBag.FilterOptions = await _filterOptions.GetAsync(movementId);
         ViewBag.Match = match;
         ViewBag.Page = page;
-        ViewBag.TotalPages = (int)Math.Ceiling(total / 20.0);
+        ViewBag.PageSize = pageSize;
+        ViewBag.TotalPages = (int)Math.Ceiling(total / (double)pageSize);
         ViewBag.Total = total;
         return View(items);
     }
@@ -85,11 +167,19 @@ public class ManagerController : Controller
             .Include(m => m.Managers)
             .FirstOrDefaultAsync(m => m.Id == movementId);
 
-        var bytes = MembersExcelExporter.Build(
-            items,
-            movement?.Name ?? "الحركة",
-            movement?.Managers.FirstOrDefault(u => u.IsActive)?.FullName,
-            movement?.CreatedAt);
+        byte[] bytes;
+        try
+        {
+            bytes = MembersExcelExporter.Build(
+                items,
+                movement?.Name ?? "الحركة",
+                movement?.Managers.FirstOrDefault(u => u.IsActive)?.FullName,
+                movement?.CreatedAt);
+        }
+        catch (Exception ex)
+        {
+            return Content($"Export Error: {ex.GetType().Name}\n{ex.Message}\n\nInner: {ex.InnerException?.Message}\n\nStack:\n{ex.StackTrace}", "text/plain");
+        }
 
         await _audit.LogAsync(AuditAction.Export, "Member",
             description: $"تصدير {items.Count} عضو إلى Excel", movementId: movementId);
@@ -132,6 +222,7 @@ public class ManagerController : Controller
         ViewBag.EducationLevels = await _sysConst.GetValuesAsync(SysConst.EducationLevel);
         ViewBag.BenefitFields   = await _sysConst.GetValuesAsync(SysConst.BenefitField);
         ViewBag.Provinces       = await _sysConst.GetValuesAsync(SysConst.Province);
+        ViewBag.Schools         = await _sysConst.GetAllAsync(SysConst.School);
     }
 
     public async Task<IActionResult> AddMember()
@@ -208,6 +299,11 @@ public class ManagerController : Controller
         existing.District = model.District;
         existing.SubDistrict = model.SubDistrict;
         existing.Address = model.Address;
+        existing.VoterNumber = model.VoterNumber;
+        existing.ElectionCenterCode = model.ElectionCenterCode;
+        existing.ElectionSide = model.ElectionSide;
+        existing.SchoolName = model.SchoolName;
+        existing.SchoolAddress = model.SchoolAddress;
         existing.EducationLevel = model.EducationLevel;
         existing.Specialization = model.Specialization;
         existing.Occupation = model.Occupation;
@@ -323,6 +419,46 @@ public class ManagerController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ApproveElectionCenter(int id, string? groupName, string? code, string centerName, string? centerAddress)
+    {
+        var request = await _requests.GetByIdAsync(id);
+        if (request == null || request.MovementId != GetMovementId()) return NotFound();
+        if (!string.IsNullOrWhiteSpace(centerName))
+            await _sysConst.AddAsync(SysConst.School, centerName, centerAddress, code, groupName);
+        TempData["Success"] = "تم اعتماد المركز الانتخابي وإضافته إلى القائمة";
+        return RedirectToAction(nameof(RequestDetails), new { id });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ApproveRequestClearCenter(int id, string? benefitField)
+    {
+        try
+        {
+            var request = await _requests.GetByIdAsync(id);
+            if (request == null || request.MovementId != GetMovementId()) return NotFound();
+
+            // مسح بيانات المركز الانتخابي اليدوي قبل الموافقة
+            request.SchoolName    = null;
+            request.SchoolAddress = null;
+            request.ElectionSide  = null;
+            await _db.SaveChangesAsync();
+
+            var member = await _requests.ApproveAsync(id, benefitField, GetUserId());
+            await _audit.LogAsync(AuditAction.ApproveRequest, "JoinRequest", id.ToString(),
+                newValues: new { MemberId = member.Id, member.SerialNumber, CenterCleared = true },
+                movementId: request.MovementId,
+                description: $"قبول طلب (مع إلغاء المركز): {request.FullName} - الرقم التسلسلي: {member.SerialNumber}");
+            TempData["Success"] = $"تمت الموافقة على الطلب. الرقم التسلسلي للعضو: {member.SerialNumber}";
+            return RedirectToAction(nameof(JoinRequests));
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = ex.Message;
+            return RedirectToAction(nameof(RequestDetails), new { id });
+        }
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ApproveRequest(int id, string? benefitField)
     {
         try
@@ -336,6 +472,49 @@ public class ManagerController : Controller
                 movementId: request.MovementId,
                 description: $"قبول طلب: {request.FullName} - الرقم التسلسلي: {member.SerialNumber}");
             TempData["Success"] = $"تمت الموافقة على الطلب. الرقم التسلسلي للعضو: {member.SerialNumber}";
+            return RedirectToAction(nameof(JoinRequests));
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = ex.Message;
+            return RedirectToAction(nameof(RequestDetails), new { id });
+        }
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> RevokeApproval(int id, string reason)
+    {
+        try
+        {
+            var request = await _db.JoinRequests.FindAsync(id);
+            if (request == null || request.MovementId != GetMovementId()) return NotFound();
+            if (request.Status != RequestStatus.Approved)
+            {
+                TempData["Error"] = "الطلب غير مقبول أصلاً";
+                return RedirectToAction(nameof(RequestDetails), new { id });
+            }
+
+            // حذف العضو المرتبط بالطلب
+            var member = await _db.Members.FirstOrDefaultAsync(m => m.JoinRequestId == id);
+            if (member != null)
+            {
+                _db.Members.Remove(member);
+            }
+
+            // تغيير حالة الطلب إلى مرفوض
+            request.Status           = RequestStatus.Rejected;
+            request.RejectionReason  = reason;
+            request.ReviewedByUserId = GetUserId();
+            request.ReviewedAt       = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+
+            await _audit.LogAsync(AuditAction.RejectRequest, "JoinRequest", id.ToString(),
+                newValues: new { Reason = reason, MemberDeleted = member != null },
+                movementId: request.MovementId,
+                description: $"سحب القبول ورفض الطلب: {request.FullName}");
+
+            TempData["Success"] = "تم سحب القبول وحذف العضو ورفض الطلب";
             return RedirectToAction(nameof(JoinRequests));
         }
         catch (Exception ex)
@@ -436,16 +615,18 @@ public class ManagerController : Controller
     // ─── قائمة الطلبات ───────────────────────────────────────────────────────
     [HttpGet]
     public async Task<IActionResult> CitizenRequests(
-        List<MemberFilter>? filters, FilterMatch match = FilterMatch.All, int page = 1)
+        List<MemberFilter>? filters, FilterMatch match = FilterMatch.All, int page = 1, int pageSize = 100)
     {
+        if (!new[] { 100, 1000, 10000 }.Contains(pageSize)) pageSize = 100;
         var movId = GetMovementId();
-        var (items, total) = await _crSvc.SearchAsync(movId, filters, match, page, 20);
+        var (items, total) = await _crSvc.SearchAsync(movId, filters, match, page, pageSize);
 
         ViewBag.Filters = CitizenRequestFilterFields.Normalize(filters);
         ViewBag.Match = match;
         ViewBag.FilterOptions = await _crSvc.GetFilterOptionsAsync(movId);
         ViewBag.Page = page;
-        ViewBag.TotalPages = (int)Math.Ceiling(total / 20.0);
+        ViewBag.PageSize = pageSize;
+        ViewBag.TotalPages = (int)Math.Ceiling(total / (double)pageSize);
         ViewBag.Total = total;
 
         return View(items);

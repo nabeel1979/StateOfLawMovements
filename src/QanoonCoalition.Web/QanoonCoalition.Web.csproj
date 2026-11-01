@@ -20,4 +20,9 @@
     </PackageReference>
   </ItemGroup>
 
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\members_template.xlsx" />
+  </ItemGroup>
+
 </Project>

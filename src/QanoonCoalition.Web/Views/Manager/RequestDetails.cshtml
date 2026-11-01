@@ -4,6 +4,14 @@
     ViewData["Title"] = "تفاصيل الطلب";
 }
 
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible mb-3" role="alert">
+        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
 <div class="page-header">
     <h1 class="page-title"><i class="fas fa-file-alt"></i> تفاصيل الطلب</h1>
     <div class="d-flex gap-2 align-items-center">
@@ -96,7 +104,61 @@
                             {
                                 <div class="col-12"><div class="text-muted" style="font-size:.78rem">العنوان التفصيلي</div><div>@Model.Address</div></div>
                             }
-                            @if (string.IsNullOrEmpty(Model.Province) && string.IsNullOrEmpty(Model.Address))
+
+                            @* ── بيانات المركز الانتخابي ── *@
+                            @if (!string.IsNullOrEmpty(Model.VoterNumber) || !string.IsNullOrEmpty(Model.SchoolName))
+                            {
+                                <div class="col-12"><hr class="my-1"/></div>
+                                @if (!string.IsNullOrEmpty(Model.VoterNumber))
+                                {
+                                    <div class="col-md-4"><div class="text-muted" style="font-size:.78rem">رقم الناخب</div><div class="fw-600">@Model.VoterNumber</div></div>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.ElectionSide))
+                                {
+                                    <div class="col-md-4">
+                                        <div class="text-muted" style="font-size:.78rem">الجانب</div>
+                                        <div>
+                                            @if (Model.ElectionSide == "الكرخ")
+                                            {
+                                                <span class="badge" style="background:#1a5c38">الكرخ</span>
+                                            }
+                                            else if (Model.ElectionSide == "الرصافة")
+                                            {
+                                                <span class="badge" style="background:#1a3a8c">الرصافة</span>
+                                            }
+                                            else
+                                            {
+                                                <span>@Model.ElectionSide</span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.ElectionCenterCode))
+                                {
+                                    <div class="col-md-4"><div class="text-muted" style="font-size:.78rem">رقم المركز</div><div class="fw-600">@Model.ElectionCenterCode</div></div>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.SchoolName))
+                                {
+                                    <div class="col-md-6"><div class="text-muted" style="font-size:.78rem">اسم المركز الانتخابي</div><div>@Model.SchoolName</div></div>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.SchoolAddress))
+                                {
+                                    <div class="col-md-6"><div class="text-muted" style="font-size:.78rem">عنوان المركز الانتخابي</div><div>@Model.SchoolAddress</div></div>
+                                }
+
+                                @* زر اعتماد المركز — يظهر فقط إذا كان المركز مُدخلاً يدوياً (لا يوجد رقم مركز معروف) *@
+                                @if (string.IsNullOrEmpty(Model.ElectionCenterCode) && !string.IsNullOrEmpty(Model.SchoolName))
+                                {
+                                    <div class="col-12 mt-1">
+                                        <button type="button" class="btn btn-sm btn-outline-success"
+                                                onclick="document.getElementById('approveCenterModal').style.display='flex'">
+                                            <i class="fas fa-landmark me-1"></i> اعتماد المركز الانتخابي وإضافته للقائمة
+                                        </button>
+                                    </div>
+                                }
+                            }
+
+                            @if (string.IsNullOrEmpty(Model.Province) && string.IsNullOrEmpty(Model.Address) && string.IsNullOrEmpty(Model.SchoolName) && string.IsNullOrEmpty(Model.VoterNumber))
                             {
                                 <div class="col-12 text-muted text-center py-3">لم يتم إدخال بيانات السكن</div>
                             }
@@ -184,18 +246,57 @@
 
     <!-- Right: Actions -->
     <div class="col-lg-4">
+        @{
+            bool hasManualCenter = Model.Status == RequestStatus.Pending
+                && string.IsNullOrEmpty(Model.ElectionCenterCode)
+                && !string.IsNullOrEmpty(Model.SchoolName);
+        }
         @if (Model.Status == RequestStatus.Pending)
         {
+            @* ── كارد المركز الانتخابي غير المعتمد ── *@
+            if (hasManualCenter)
+            {
+                <div class="card mb-3" style="border-top:4px solid #f59e0b">
+                    <div class="card-header" style="background:#fffbeb;border-bottom:1px solid #fde68a">
+                        <i class="fas fa-landmark" style="color:#d97706"></i>
+                        <span style="color:#92400e;font-weight:700"> المركز الانتخابي يحتاج إلى قرار</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2" style="font-size:.85rem;color:#78350f">
+                            <div><strong>@Model.SchoolName</strong></div>
+                            @if (!string.IsNullOrEmpty(Model.ElectionSide)) { <div class="text-muted">@Model.ElectionSide</div> }
+                            @if (!string.IsNullOrEmpty(Model.SchoolAddress)) { <div class="text-muted" style="font-size:.8rem">@Model.SchoolAddress</div> }
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-warning btn-sm"
+                                    style="color:#1a1a1a"
+                                    onclick="document.getElementById('approveCenterModal').style.display='flex'">
+                                <i class="fas fa-check-circle me-1"></i> اعتماد المركز وإضافته للقائمة
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                    onclick="showConfirm('سيتم إلغاء بيانات المركز الانتخابي وقبول الطلب. هل تريد المتابعة؟', 'clearApprove', 'warning')">
+                                <i class="fas fa-times me-1"></i> إلغاء المركز والموافقة على الطلب
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <form id="clearApproveForm" method="post" asp-action="ApproveRequestClearCenter" asp-route-id="@Model.Id" style="display:none">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="benefitField" id="clearApproveBenefit"/>
+                </form>
+            }
+
+            @* ── كارد الموافقة ── *@
             <div class="card mb-3">
                 <div class="card-header" style="border-right:4px solid var(--accent)">
                     <i class="fas fa-check-circle text-success"></i> الموافقة على الطلب
                 </div>
                 <div class="card-body">
-                    <form method="post" asp-action="ApproveRequest" asp-route-id="@Model.Id">
+                    <form method="post" asp-action="ApproveRequest" asp-route-id="@Model.Id" id="approveForm">
                         @Html.AntiForgeryToken()
                         <div class="mb-3">
                             <label class="form-label">مجال الاستفادة من العضو <span class="text-danger">*</span></label>
-                            <select name="benefitField" class="form-select" required>
+                            <select name="benefitField" id="benefitFieldSelect" class="form-select" required>
                                 <option value="">— اختر المجال —</option>
                                 @foreach (var bf in (List<string>)(ViewBag.BenefitFields ?? new List<string>()))
                                 {
@@ -232,7 +333,7 @@
         }
         else
         {
-            <div class="card" style="border-top:4px solid @(Model.Status == RequestStatus.Approved ? "var(--accent)" : "#dc3545")">
+            <div class="card @(Model.Status == RequestStatus.Approved ? "" : "mb-3")" style="border-top:4px solid @(Model.Status == RequestStatus.Approved ? "var(--accent)" : "#dc3545")">
                 <div class="card-body text-center py-4">
                     @if (Model.Status == RequestStatus.Approved)
                     {
@@ -254,6 +355,32 @@
                     </p>
                 </div>
             </div>
+
+            @* زر سحب القبول — يظهر فقط للطلبات المقبولة *@
+            @if (Model.Status == RequestStatus.Approved)
+            {
+                <div class="card mt-3" style="border-top:4px solid #dc3545">
+                    <div class="card-header" style="border-right:4px solid #dc3545">
+                        <i class="fas fa-undo text-danger"></i> سحب القبول ورفض الطلب
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3" style="font-size:.83rem">
+                            سيتم <strong>حذف العضو</strong> المرتبط بهذا الطلب وتغيير حالته إلى مرفوض.
+                        </p>
+                        <form method="post" asp-action="RevokeApproval" asp-route-id="@Model.Id" id="revokeForm">
+                            @Html.AntiForgeryToken()
+                            <div class="mb-3">
+                                <label class="form-label">سبب الرفض <span class="text-danger">*</span></label>
+                                <textarea name="reason" id="revokeReason" class="form-control" rows="2" required placeholder="أدخل سبب سحب القبول..."></textarea>
+                            </div>
+                            <button type="button" class="btn btn-danger w-100"
+                                    onclick="showConfirm('سيتم حذف العضو ورفض الطلب نهائياً. هل أنت متأكد؟', 'revoke', 'danger')">
+                                <i class="fas fa-undo me-2"></i> سحب القبول وحذف العضو
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
         }
 
         <!-- Custom Confirm Modal -->
@@ -287,6 +414,52 @@
     </div>
 </div>
 
+@* ── مودال اعتماد المركز الانتخابي ── *@
+@if (!string.IsNullOrEmpty(Model.SchoolName) && string.IsNullOrEmpty(Model.ElectionCenterCode))
+{
+<div id="approveCenterModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;width:90%;max-width:480px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <div style="background:#1a5c38;padding:1.25rem 1.5rem;display:flex;align-items:center;gap:.75rem">
+            <i class="fas fa-landmark" style="color:#fff;font-size:1.4rem"></i>
+            <div style="color:#fff;font-weight:700;font-size:1rem">اعتماد المركز الانتخابي</div>
+        </div>
+        <form method="post" asp-action="ApproveElectionCenter" asp-route-id="@Model.Id">
+            @Html.AntiForgeryToken()
+            <div class="p-4">
+                <p class="text-muted mb-3" style="font-size:.88rem">سيتم إضافة هذا المركز إلى قائمة المراكز الانتخابية. يمكنك تعديل البيانات قبل الاعتماد.</p>
+                <div class="mb-3">
+                    <label class="form-label fw-600">الجانب</label>
+                    <select name="groupName" class="form-select">
+                        <option value="">— غير محدد —</option>
+                        @if (Model.ElectionSide == "الكرخ") { <option value="الكرخ" selected="selected">الكرخ</option> } else { <option value="الكرخ">الكرخ</option> }
+                        @if (Model.ElectionSide == "الرصافة") { <option value="الرصافة" selected="selected">الرصافة</option> } else { <option value="الرصافة">الرصافة</option> }
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-600">رقم المركز</label>
+                    <input name="code" class="form-control" value="@Model.ElectionCenterCode" placeholder="اختياري"/>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-600">اسم المركز <span class="text-danger">*</span></label>
+                    <input name="centerName" class="form-control" value="@Model.SchoolName" required/>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-600">عنوان المركز</label>
+                    <input name="centerAddress" class="form-control" value="@Model.SchoolAddress"/>
+                </div>
+                <div class="d-flex gap-2 justify-content-end">
+                    <button type="button" onclick="document.getElementById('approveCenterModal').style.display='none'"
+                            class="btn btn-outline-secondary">إلغاء</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i> اعتماد وإضافة
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+}
+
 @section Scripts {
 <style>
     @@keyframes fadeIn { from { opacity:0; transform:scale(.95) } to { opacity:1; transform:scale(1) } }
@@ -295,9 +468,9 @@
     var _pendingAction = null;
     function showConfirm(msg, action, type) {
         _pendingAction = action;
-        var colors = { success: '#1a5c38', danger: '#dc2626' };
-        var icons  = { success: '✓', danger: '✕' };
-        var titles = { success: 'تأكيد القبول', danger: 'تأكيد الرفض' };
+        var colors = { success: '#1a5c38', danger: '#dc2626', warning: '#d97706' };
+        var icons  = { success: '✓', danger: '✕', warning: '!' };
+        var titles = { success: 'تأكيد القبول', danger: 'تأكيد الرفض', warning: 'تأكيد العملية' };
         var c = colors[type] || '#1a5c38';
         document.getElementById('modalHeader').style.background = c;
         document.getElementById('modalIcon').style.background = 'rgba(255,255,255,0.2)';
@@ -314,9 +487,15 @@
     }
     document.getElementById('modalConfirmBtn').addEventListener('click', function () {
         if (_pendingAction === 'approve') {
-            document.querySelector('form[action*="ApproveRequest"]').submit();
+            document.getElementById('approveForm').submit();
         } else if (_pendingAction === 'reject') {
             document.querySelector('form[action*="RejectRequest"]').submit();
+        } else if (_pendingAction === 'clearApprove') {
+            var bf = document.getElementById('benefitFieldSelect');
+            if (bf) document.getElementById('clearApproveBenefit').value = bf.value;
+            document.getElementById('clearApproveForm').submit();
+        } else if (_pendingAction === 'revoke') {
+            document.getElementById('revokeForm').submit();
         }
         closeConfirm();
     });

@@ -2,7 +2,7 @@
 @using QanoonCoalition.Web.Services
 @{
     ViewData["Title"] = "طلبات المواطنين";
-    int page = ViewBag.Page, totalPages = ViewBag.TotalPages, total = ViewBag.Total;
+    int curPg = ViewBag.Page, totalPages = ViewBag.TotalPages, total = ViewBag.Total;
 }
 
 @if (TempData["Success"] != null)
@@ -55,7 +55,7 @@ else
                     </tr>
                 </thead>
                 <tbody>
-                    @{ int i = (page - 1) * 20 + 1; }
+                    @{ int i = (curPg - 1) * 20 + 1; }
                     @foreach (var r in Model)
                     {
                         <tr>
@@ -125,15 +125,31 @@ else
     <!-- Pagination — يعيد إرسال نموذج الفلترة لتبقى الشروط مطبَّقة -->
     @if (totalPages > 1)
     {
+        int window = 3;
+        int pFrom  = Math.Max(1, curPg - window);
+        int pTo    = Math.Min(totalPages, curPg + window);
         <nav class="mt-3 d-flex justify-content-center">
-            <ul class="pagination pagination-sm">
-                @for (int p = 1; p <= totalPages; p++)
+            <ul class="pagination pagination-sm flex-wrap">
+                @{ var prevDis = curPg == 1 ? "disabled" : ""; var nextDis = curPg == totalPages ? "disabled" : ""; }
+                <li class='page-item @prevDis'><button type="button" class="page-link" onclick="mfGoToPage(@(curPg-1))"><i class="fas fa-chevron-right"></i></button></li>
+                @if (pFrom > 1)
                 {
-                    <li class="page-item @(p == page ? "active" : "")">
-                        <button type="button" class="page-link" onclick="mfGoToPage(@p)">@p</button>
-                    </li>
+                    <li class="page-item"><button type="button" class="page-link" onclick="mfGoToPage(1)">1</button></li>
+                    @if (pFrom > 2) { <li class="page-item disabled"><span class="page-link">…</span></li> }
                 }
+                @for (int pp = pFrom; pp <= pTo; pp++)
+                {
+                    var cls = pp == curPg ? "active" : "";
+                    <li class='page-item @cls'><button type="button" class="page-link" onclick="mfGoToPage(@pp)">@pp</button></li>
+                }
+                @if (pTo < totalPages)
+                {
+                    @if (pTo < totalPages - 1) { <li class="page-item disabled"><span class="page-link">…</span></li> }
+                    <li class="page-item"><button type="button" class="page-link" onclick="mfGoToPage(@totalPages)">@totalPages</button></li>
+                }
+                <li class='page-item @nextDis'><button type="button" class="page-link" onclick="mfGoToPage(@(curPg+1))"><i class="fas fa-chevron-left"></i></button></li>
             </ul>
         </nav>
+        <p class="text-center text-muted small mt-1">صفحة @curPg من @totalPages — إجمالي @total سجل</p>
     }
 }

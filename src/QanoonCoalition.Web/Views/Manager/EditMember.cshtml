@@ -99,27 +99,99 @@
 
         <div class="tab-pane fade" id="ep-residence">
             <div class="row g-3 mt-1">
-                <div class="col-md-4">
+                @* السطر الأول: المحافظة / القضاء / الناحية / رقم الناخب *@
+                <div class="col-md-3">
                     <label class="form-label">المحافظة</label>
-                    <select name="Province" class="form-select">
+                    <select name="Province" class="form-select form-select-sm">
                         <option value="">— اختر —</option>
                         @foreach (var p in (List<string>)(ViewBag.Provinces ?? new List<string>()))
                         {
-                            <option value="@p" selected="@(Model.Province == p)">@p</option>
+                            if (p == Model.Province) { <option value="@p" selected="selected">@p</option> }
+                            else { <option value="@p">@p</option> }
                         }
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label">القضاء</label>
-                    <input type="text" name="District" class="form-control" value="@Model.District" maxlength="100"/>
+                    <input type="text" name="District" class="form-control form-control-sm" value="@Model.District" maxlength="100"/>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الناحية</label>
+                    <input type="text" name="SubDistrict" class="form-control form-control-sm" value="@Model.SubDistrict" maxlength="100"/>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">رقم الناخب</label>
+                    <input type="text" name="VoterNumber" class="form-control form-control-sm" value="@Model.VoterNumber" maxlength="50"/>
+                </div>
+                @* ─── المركز الانتخابي ─── *@
+                @{
+                    var ecList = (ViewBag.Schools as List<QanoonCoalition.Web.Models.SystemConstant>) ?? new();
+                    var ecJson = System.Text.Json.JsonSerializer.Serialize(ecList.Select(s => new {
+                        code    = s.Code    ?? "",
+                        name    = s.Value,
+                        address = s.ExtraData ?? "",
+                        side    = s.GroupName ?? ""
+                    }));
+                }
+                <div class="col-12"><hr class="my-1"/><strong class="small text-muted">المركز الانتخابي</strong></div>
+                <div class="col-md-2">
+                    <label class="form-label">الجانب</label>
+                    <select id="ecSide" name="ElectionSide" class="form-select form-select-sm">
+                        <option value="">— الكل —</option>
+                        @{ var sides = new[]{"الكرخ","الرصافة"}; }
+                        @foreach (var sv in sides)
+                        {
+                            if (sv == Model.ElectionSide) { <option value="@sv" selected="selected">@sv</option> }
+                            else { <option value="@sv">@sv</option> }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">رقم المركز</label>
+                    <input type="text" id="ecCode" name="ElectionCenterCode" list="ecCodeList"
+                           class="form-control form-control-sm" value="@Model.ElectionCenterCode" maxlength="50" autocomplete="off"/>
+                    <datalist id="ecCodeList"></datalist>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">الناحية</label>
-                    <input type="text" name="SubDistrict" class="form-control" value="@Model.SubDistrict" maxlength="100"/>
+                    <label class="form-label">اسم المركز</label>
+                    <input type="text" id="ecName" name="SchoolName" list="ecNameList"
+                           class="form-control form-control-sm" value="@Model.SchoolName" maxlength="200" autocomplete="off"/>
+                    <datalist id="ecNameList"></datalist>
                 </div>
+                <div class="col-md-4">
+                    <label class="form-label">عنوان المركز <small class="text-muted">(تلقائي)</small></label>
+                    <input type="text" id="ecAddress" name="SchoolAddress"
+                           class="form-control form-control-sm bg-light"
+                           value="@Model.SchoolAddress" maxlength="500" readonly />
+                </div>
+                <script>
+                (function(){
+                    var ALL = @Html.Raw(ecJson);
+                    var sideEl = document.getElementById('ecSide');
+                    var codeEl = document.getElementById('ecCode');
+                    var nameEl = document.getElementById('ecName');
+                    var addrEl = document.getElementById('ecAddress');
+                    function filtered(){ var s=sideEl.value; return s ? ALL.filter(function(c){return c.side===s;}) : ALL; }
+                    function rebuildLists(){
+                        var list = filtered();
+                        document.getElementById('ecCodeList').innerHTML = list.map(function(c){return '<option value="'+c.code+'">'+(c.name ? c.code+' — '+c.name : '')+'</option>';}).join('');
+                        document.getElementById('ecNameList').innerHTML = list.map(function(c){return '<option value="'+c.name+'">'+c.name+'</option>';}).join('');
+                    }
+                    function findByCode(v){ return ALL.find(function(c){return c.code===v;}); }
+                    function findByName(v){ return ALL.find(function(c){return c.name===v;}); }
+                    sideEl.addEventListener('change', function(){ rebuildLists(); });
+                    codeEl.addEventListener('change', function(){
+                        var c=findByCode(codeEl.value); if(c){ nameEl.value=c.name; addrEl.value=c.address; sideEl.value=c.side; }
+                    });
+                    nameEl.addEventListener('change', function(){
+                        var c=findByName(nameEl.value); if(c){ codeEl.value=c.code; addrEl.value=c.address; sideEl.value=c.side; }
+                    });
+                    rebuildLists();
+                })();
+                </script>
                 <div class="col-12">
                     <label class="form-label">العنوان التفصيلي</label>
-                    <textarea name="Address" class="form-control" rows="2" maxlength="500">@Model.Address</textarea>
+                    <textarea name="Address" class="form-control form-control-sm" rows="2" maxlength="500">@Model.Address</textarea>
                 </div>
             </div>
         </div>

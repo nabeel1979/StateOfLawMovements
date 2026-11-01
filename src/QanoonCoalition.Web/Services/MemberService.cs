@@ -28,7 +28,7 @@ public class MemberService : IMemberService
             q = q.Where(predicate);
 
         var total = await q.CountAsync();
-        var items = await q.OrderBy(m => m.FullName)
+        var items = await q.OrderByDescending(m => m.CreatedAt).ThenByDescending(m => m.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -42,7 +42,8 @@ public class MemberService : IMemberService
 
     public async Task<Member> AddManuallyAsync(Member member)
     {
-        await ValidateUniquenessAsync(member.FullName, member.Phone, member.Email);
+        await ValidateUniquenessAsync(member.FullName, member.Phone, member.Email,
+            voterNumber: member.VoterNumber);
         member.SerialNumber = await _serial.GenerateAsync();
         member.CreatedAt = DateTime.UtcNow;
         _db.Members.Add(member);
@@ -52,7 +53,8 @@ public class MemberService : IMemberService
 
     public async Task UpdateAsync(Member member)
     {
-        await ValidateUniquenessAsync(member.FullName, member.Phone, member.Email, member.Id);
+        await ValidateUniquenessAsync(member.FullName, member.Phone, member.Email, member.Id,
+            voterNumber: member.VoterNumber);
         _db.Members.Update(member);
         await _db.SaveChangesAsync();
     }
@@ -88,6 +90,13 @@ public class MemberService : IMemberService
         return await q.AnyAsync();
     }
 
+    public async Task<bool> VoterNumberExistsAsync(string voterNumber, int? excludeId = null)
+    {
+        var q = _db.Members.Where(m => m.VoterNumber != null && m.VoterNumber == voterNumber);
+        if (excludeId.HasValue) q = q.Where(m => m.Id != excludeId);
+        return await q.AnyAsync();
+    }
+
     public async Task<int> GetTotalCountAsync(int? movementId = null)
     {
         var q = _db.Members.AsQueryable();
@@ -95,7 +104,8 @@ public class MemberService : IMemberService
         return await q.CountAsync();
     }
 
-    private async Task ValidateUniquenessAsync(string fullName, string phone, string? email, int? excludeId = null)
+    private async Task ValidateUniquenessAsync(string fullName, string phone, string? email,
+        int? excludeId = null, string? voterNumber = null)
     {
         if (await NameExistsAsync(fullName, excludeId))
             throw new InvalidOperationException("الاسم مستخدم مسبقاً في إحدى الحركات");
@@ -103,5 +113,7 @@ public class MemberService : IMemberService
             throw new InvalidOperationException("رقم الهاتف مستخدم مسبقاً في إحدى الحركات");
         if (!string.IsNullOrEmpty(email) && await EmailExistsAsync(email, excludeId))
             throw new InvalidOperationException("البريد الإلكتروني مستخدم مسبقاً في إحدى الحركات");
+        if (!string.IsNullOrWhiteSpace(voterNumber) && await VoterNumberExistsAsync(voterNumber, excludeId))
+            throw new InvalidOperationException($"رقم الناخب \"{voterNumber}\" مستخدم مسبقاً لعضو آخر");
     }
 }

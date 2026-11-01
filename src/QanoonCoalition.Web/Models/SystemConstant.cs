@@ -15,6 +15,18 @@ public class SystemConstant
     [MaxLength(200)]
     public string Value { get; set; } = string.Empty;
 
+    /// <summary>بيانات إضافية اختيارية — للمراكز الانتخابية: عنوان المركز</summary>
+    [MaxLength(500)]
+    public string? ExtraData { get; set; }
+
+    /// <summary>رمز/رقم العنصر — للمراكز الانتخابية: رقم المركز</summary>
+    [MaxLength(50)]
+    public string? Code { get; set; }
+
+    /// <summary>مجموعة/جانب — للمراكز الانتخابية: الكرخ / الرصافة</summary>
+    [MaxLength(100)]
+    public string? GroupName { get; set; }
+
     public int DisplayOrder { get; set; } = 0;
 
     public bool IsActive { get; set; } = true;
@@ -30,6 +42,7 @@ public static class SysConst
     public const string BenefitField   = "BenefitField";
     public const string ManagerTitle   = "ManagerTitle";
     public const string Province       = "Province";
+    public const string School         = "School";
 
     public static readonly List<SysConstCategory> All = new()
     {
@@ -40,7 +53,9 @@ public static class SysConst
         new(Province, "المحافظة", "fa-map-marker-alt",
             "سكن العضو وبيانات الحركة"),
         new(ManagerTitle, "صفة المسؤول", "fa-user-tie",
-            "إنشاء وتعديل مسؤولي الحركات")
+            "إنشاء وتعديل مسؤولي الحركات"),
+        new(School, "المركز الانتخابي", "fa-landmark",
+            "بيانات سكن العضو")
     };
 
     public static readonly Dictionary<string, string> Labels =

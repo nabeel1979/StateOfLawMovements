@@ -81,10 +81,19 @@
 
         <!-- بيانات السكن -->
         <div class="tab-pane fade" id="tab-residence">
+            @{
+                var addEcList = (ViewBag.Schools as List<QanoonCoalition.Web.Models.SystemConstant>) ?? new();
+                var addEcJson = System.Text.Json.JsonSerializer.Serialize(addEcList.Select(s => new {
+                    code    = s.Code    ?? "",
+                    name    = s.Value,
+                    address = s.ExtraData ?? "",
+                    side    = s.GroupName ?? ""
+                }));
+            }
             <div class="row g-3 mt-1">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label">المحافظة</label>
-                    <select name="Province" class="form-select">
+                    <select name="Province" class="form-select form-select-sm">
                         <option value="">— اختر —</option>
                         @foreach (var p in (List<string>)(ViewBag.Provinces ?? new List<string>()))
                         {
@@ -92,19 +101,68 @@
                         }
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label">القضاء</label>
-                    <input type="text" name="District" class="form-control" value="@Model.District" maxlength="100"/>
+                    <input type="text" name="District" class="form-control form-control-sm" value="@Model.District" maxlength="100"/>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الناحية</label>
+                    <input type="text" name="SubDistrict" class="form-control form-control-sm" value="@Model.SubDistrict" maxlength="100"/>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">رقم الناخب</label>
+                    <input type="text" name="VoterNumber" class="form-control form-control-sm" value="@Model.VoterNumber" maxlength="50"/>
+                </div>
+                <div class="col-12"><hr class="my-1"/><strong class="small text-muted">المركز الانتخابي</strong></div>
+                <div class="col-md-2">
+                    <label class="form-label">الجانب</label>
+                    <select id="addEcSide" name="ElectionSide" class="form-select form-select-sm">
+                        <option value="">— الكل —</option>
+                        <option value="الكرخ">الكرخ</option>
+                        <option value="الرصافة">الرصافة</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">رقم المركز</label>
+                    <input type="text" id="addEcCode" name="ElectionCenterCode" list="addEcCodeList"
+                           class="form-control form-control-sm" maxlength="50" autocomplete="off"/>
+                    <datalist id="addEcCodeList"></datalist>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">الناحية</label>
-                    <input type="text" name="SubDistrict" class="form-control" value="@Model.SubDistrict" maxlength="100"/>
+                    <label class="form-label">اسم المركز</label>
+                    <input type="text" id="addEcName" name="SchoolName" list="addEcNameList"
+                           class="form-control form-control-sm" maxlength="200" autocomplete="off"/>
+                    <datalist id="addEcNameList"></datalist>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">عنوان المركز <small class="text-muted">(تلقائي)</small></label>
+                    <input type="text" id="addEcAddress" name="SchoolAddress"
+                           class="form-control form-control-sm bg-light" maxlength="500" readonly />
                 </div>
                 <div class="col-12">
                     <label class="form-label">العنوان التفصيلي</label>
-                    <textarea name="Address" class="form-control" rows="2" maxlength="500">@Model.Address</textarea>
+                    <textarea name="Address" class="form-control form-control-sm" rows="2" maxlength="500">@Model.Address</textarea>
                 </div>
             </div>
+            <script>
+            (function(){
+                var ALL=@Html.Raw(addEcJson);
+                var sideEl=document.getElementById('addEcSide');
+                var codeEl=document.getElementById('addEcCode');
+                var nameEl=document.getElementById('addEcName');
+                var addrEl=document.getElementById('addEcAddress');
+                function filtered(){var s=sideEl.value;return s?ALL.filter(function(c){return c.side===s;}):ALL;}
+                function rebuildLists(){
+                    var list=filtered();
+                    document.getElementById('addEcCodeList').innerHTML=list.map(function(c){return '<option value="'+c.code+'">'+(c.name?c.code+' — '+c.name:'')+'</option>';}).join('');
+                    document.getElementById('addEcNameList').innerHTML=list.map(function(c){return '<option value="'+c.name+'">'+c.name+'</option>';}).join('');
+                }
+                sideEl.addEventListener('change',function(){rebuildLists();});
+                codeEl.addEventListener('change',function(){var c=ALL.find(function(x){return x.code===codeEl.value;});if(c){nameEl.value=c.name;addrEl.value=c.address;sideEl.value=c.side;}});
+                nameEl.addEventListener('change',function(){var c=ALL.find(function(x){return x.name===nameEl.value;});if(c){codeEl.value=c.code;addrEl.value=c.address;sideEl.value=c.side;}});
+                rebuildLists();
+            })();
+            </script>
         </div>
 
         <!-- البيانات العلمية -->

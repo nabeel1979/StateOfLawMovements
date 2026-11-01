@@ -19,6 +19,7 @@
 
 <form method="get" id="mfForm" class="mf-wrap">
     <input type="hidden" name="page" id="mfPage" value="1"/>
+    @{ var curPageSize = ViewBag.PageSize is int ps ? ps : 100; }
 
     <div class="mf-toolbar">
         <button type="button" class="mf-btn" id="mfToggle">
@@ -71,6 +72,18 @@
         }
 
         <div class="mf-toolbar-end">
+            @* dropdown حجم الصفحة *@
+            <div class="mf-pagesize-wrap" title="عدد السجلات في الصفحة">
+                <i class="fas fa-list-ol mf-pagesize-icon"></i>
+                <select name="pageSize" id="mfPageSize" class="mf-select mf-pagesize-select"
+                        onchange="document.getElementById('mfPage').value='1'; document.getElementById('mfForm').submit()">
+                    @foreach (var sz in new[] { 100, 1000, 10000 })
+                    {
+                        if (sz == curPageSize) { <option value="@sz" selected="selected">@sz.ToString("N0")</option> }
+                        else                   { <option value="@sz">@sz.ToString("N0")</option> }
+                    }
+                </select>
+            </div>
             <button type="submit" class="mf-btn mf-btn-export" formaction="@Url.Action("ExportMembers")">
                 <i class="fas fa-file-excel"></i> تصدير Excel
             </button>

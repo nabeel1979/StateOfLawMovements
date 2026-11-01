@@ -1,0 +1,265 @@
+@model List<QanoonCoalition.Web.Models.SystemConstant>
+@{
+    ViewData["Title"] = "المراكز الانتخابية";
+    int    curPage    = ViewBag.Page       ?? 1;
+    int    pageSize   = ViewBag.PageSize   ?? 20;
+    int    totalPages = ViewBag.TotalPages ?? 1;
+    int    total      = ViewBag.Total      ?? 0;
+    string search     = ViewBag.Search     ?? "";
+    string side       = ViewBag.Side       ?? "";
+}
+
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-landmark"></i> المراكز الانتخابية</h1>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show mb-3">
+        <i class="fas fa-exclamation-circle me-2"></i> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show mb-3">
+        <i class="fas fa-check-circle me-2"></i> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-plus-circle"></i> إضافة مركز انتخابي جديد
+    </div>
+    <div class="card-body">
+        <form asp-action="AddSchool" method="post">
+            @Html.AntiForgeryToken()
+            <div class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label fw-600">رقم المركز</label>
+                    <input type="text" name="code" class="form-control" placeholder="مثال: 1001" maxlength="50" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-600">الجانب</label>
+                    <select name="groupName" class="form-select">
+                        <option value="">— اختر —</option>
+                        <option value="الكرخ">الكرخ</option>
+                        <option value="الرصافة">الرصافة</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-600">اسم المركز <span class="text-danger">*</span></label>
+                    <input type="text" name="value" class="form-control" placeholder="اسم المركز الانتخابي..." maxlength="200" required />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-600">عنوان المركز</label>
+                    <input type="text" name="address" class="form-control" placeholder="العنوان التفصيلي (اختياري)..." maxlength="500" />
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-plus me-1"></i> إضافة
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex align-items-center gap-2 flex-wrap">
+        <span><i class="fas fa-list"></i> قائمة المراكز</span>
+        <span class="badge bg-primary">@total</span>
+        <form method="get" asp-action="Schools" class="d-flex gap-2 ms-auto align-items-center flex-wrap">
+            <input type="hidden" name="pageSize" value="@pageSize" />
+            @* فلتر الجانب *@
+            <div class="btn-group btn-group-sm" role="group">
+                <a asp-action="Schools" asp-route-search="@search" asp-route-pageSize="@pageSize"
+                   class="btn @(string.IsNullOrEmpty(side) ? "btn-primary" : "btn-outline-secondary")">الكل</a>
+                <a asp-action="Schools" asp-route-search="@search" asp-route-side="الكرخ" asp-route-pageSize="@pageSize"
+                   class="btn @(side == "الكرخ" ? "btn-primary" : "btn-outline-secondary")">الكرخ</a>
+                <a asp-action="Schools" asp-route-search="@search" asp-route-side="الرصافة" asp-route-pageSize="@pageSize"
+                   class="btn @(side == "الرصافة" ? "btn-primary" : "btn-outline-secondary")">الرصافة</a>
+            </div>
+            <input type="text" name="search" value="@search" class="form-control form-control-sm"
+                   placeholder="بحث برقم / اسم / عنوان..." style="width:220px" />
+            @if (!string.IsNullOrEmpty(side)) { <input type="hidden" name="side" value="@side" /> }
+            <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="fas fa-search"></i></button>
+            @if (!string.IsNullOrEmpty(search) || !string.IsNullOrEmpty(side))
+            {
+                <a asp-action="Schools" asp-route-pageSize="@pageSize" class="btn btn-sm btn-outline-danger" title="مسح الفلتر">
+                    <i class="fas fa-times"></i>
+                </a>
+            }
+            <select name="pageSize" class="form-select form-select-sm" style="width:80px" onchange="this.form.submit()">
+                @foreach (var sz in new[] { 10, 20, 50, 100 })
+                {
+                    if (sz == pageSize) { <option value="@sz" selected="selected">@sz</option> }
+                    else { <option value="@sz">@sz</option> }
+                }
+            </select>
+        </form>
+    </div>
+    @if (Model.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>رقم المركز</th>
+                        <th>الجانب</th>
+                        <th>اسم المركز</th>
+                        <th>العنوان</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < Model.Count; i++)
+                    {
+                        var s = Model[i];
+                        <tr>
+                            <td class="text-muted">@((curPage - 1) * pageSize + i + 1)</td>
+                            <td class="fw-600 text-primary">@(s.Code ?? "—")</td>
+                            <td>
+                                @if (s.GroupName == "الكرخ")
+                                { <span class="badge bg-success">الكرخ</span> }
+                                else if (s.GroupName == "الرصافة")
+                                { <span class="badge bg-info text-dark">الرصافة</span> }
+                                else
+                                { <span class="text-muted">—</span> }
+                            </td>
+                            <td class="fw-600">@s.Value</td>
+                            <td class="text-muted small">@(s.ExtraData ?? "—")</td>
+                            <td class="text-nowrap">
+                                <button type="button" class="btn btn-sm btn-outline-primary me-1 btn-edit-school"
+                                        title="تعديل"
+                                        data-id="@s.Id"
+                                        data-code="@(s.Code ?? "")"
+                                        data-groupname="@(s.GroupName ?? "")"
+                                        data-value="@s.Value"
+                                        data-address="@(s.ExtraData ?? "")">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <form asp-action="DeleteSchool" method="post" class="d-inline"
+                                      data-confirm="سيتم حذف المركز &quot;@s.Value&quot; نهائياً."
+                                      data-confirm-type="danger">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@s.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (totalPages > 1)
+        {
+            <div class="d-flex justify-content-center align-items-center gap-1 py-3 flex-wrap">
+                @if (curPage > 1)
+                {
+                    <a asp-action="Schools" asp-route-page="@(curPage-1)" asp-route-pageSize="@pageSize"
+                       asp-route-search="@search" asp-route-side="@side" class="btn btn-sm btn-outline-secondary">‹</a>
+                }
+                @{ int sFrom = Math.Max(1, curPage-3); int sTo = Math.Min(totalPages, curPage+3); }
+                @if (sFrom > 1)
+                {
+                    <a asp-action="Schools" asp-route-page="1" asp-route-pageSize="@pageSize"
+                       asp-route-search="@search" asp-route-side="@side" class="btn btn-sm btn-outline-secondary">1</a>
+                    if (sFrom > 2) { <span class="px-1">…</span> }
+                }
+                @for (int pg = sFrom; pg <= sTo; pg++)
+                {
+                    if (pg == curPage) { <button class="btn btn-sm btn-primary" disabled>@pg</button> }
+                    else
+                    {
+                        <a asp-action="Schools" asp-route-page="@pg" asp-route-pageSize="@pageSize"
+                           asp-route-search="@search" asp-route-side="@side" class="btn btn-sm btn-outline-secondary">@pg</a>
+                    }
+                }
+                @if (sTo < totalPages)
+                {
+                    if (sTo < totalPages - 1) { <span class="px-1">…</span> }
+                    <a asp-action="Schools" asp-route-page="@totalPages" asp-route-pageSize="@pageSize"
+                       asp-route-search="@search" asp-route-side="@side" class="btn btn-sm btn-outline-secondary">@totalPages</a>
+                }
+                @if (curPage < totalPages)
+                {
+                    <a asp-action="Schools" asp-route-page="@(curPage+1)" asp-route-pageSize="@pageSize"
+                       asp-route-search="@search" asp-route-side="@side" class="btn btn-sm btn-outline-secondary">›</a>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="fas fa-landmark"></i>
+            <p>لا توجد مراكز انتخابية مضافة بعد.</p>
+        </div>
+    }
+</div>
+
+@* ─── Modal تعديل المركز ────────────────────────────────────────────────── *@
+<div class="modal fade" id="editSchoolModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form asp-action="EditSchool" method="post" id="editSchoolForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" id="editSchoolId" />
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-edit me-2"></i>تعديل بيانات المركز الانتخابي</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-600">رقم المركز</label>
+                            <input type="text" name="code" id="editSchoolCode" class="form-control" maxlength="50" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-600">الجانب</label>
+                            <select name="groupName" id="editSchoolGroup" class="form-select">
+                                <option value="">— اختر —</option>
+                                <option value="الكرخ">الكرخ</option>
+                                <option value="الرصافة">الرصافة</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-600">اسم المركز <span class="text-danger">*</span></label>
+                            <input type="text" name="value" id="editSchoolValue" class="form-control" maxlength="200" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-600">عنوان المركز</label>
+                            <input type="text" name="address" id="editSchoolAddress" class="form-control" maxlength="500" placeholder="اختياري..." />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> حفظ التعديلات
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.btn-edit-school').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.getElementById('editSchoolId').value      = btn.dataset.id;
+            document.getElementById('editSchoolCode').value    = btn.dataset.code;
+            document.getElementById('editSchoolGroup').value   = btn.dataset.groupname;
+            document.getElementById('editSchoolValue').value   = btn.dataset.value;
+            document.getElementById('editSchoolAddress').value = btn.dataset.address;
+            new bootstrap.Modal(document.getElementById('editSchoolModal')).show();
+        });
+    });
+});
+</script>

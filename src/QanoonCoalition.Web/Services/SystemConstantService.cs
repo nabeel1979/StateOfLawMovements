@@ -24,6 +24,24 @@ public class SystemConstantService
             .OrderBy(c => c.Category).ThenBy(c => c.DisplayOrder)
             .ToListAsync();
 
+    public async Task<List<SystemConstant>> GetAllAsync(string category) =>
+        await _db.SystemConstants
+            .Where(c => c.Category == category)
+            .OrderBy(c => c.DisplayOrder)
+            .ToListAsync();
+
+    public async Task AddAsync(string category, string value, string? extraData = null,
+        string? code = null, string? groupName = null)
+    {
+        var exists = await ValueExistsAsync(category, value);
+        if (exists) return;
+        await CreateAsync(new SystemConstant
+        {
+            Category = category, Value = value, ExtraData = extraData,
+            Code = code, GroupName = groupName, IsActive = true
+        });
+    }
+
     public async Task<SystemConstant?> GetByIdAsync(int id) =>
         await _db.SystemConstants.FindAsync(id);
 

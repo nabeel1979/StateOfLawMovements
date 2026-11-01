@@ -286,6 +286,15 @@
                 <h6 class="fw-700 mb-3" style="color:var(--primary)">
                     <i class="fas fa-home me-2"></i> بيانات السكن
                 </h6>
+                @{
+                    var jEcList = (ViewBag.Schools as List<QanoonCoalition.Web.Models.SystemConstant>) ?? new();
+                    var jEcJson = System.Text.Json.JsonSerializer.Serialize(jEcList.Select(s => new {
+                        code    = s.Code    ?? "",
+                        name    = s.Value,
+                        address = s.ExtraData ?? "",
+                        side    = s.GroupName ?? ""
+                    }));
+                }
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label">المحافظة <span class="text-danger">*</span></label>
@@ -305,12 +314,137 @@
                         <label class="form-label">الناحية <span class="text-danger">*</span></label>
                         <input type="text" name="SubDistrict" class="form-control" value="@Model.SubDistrict" maxlength="100" placeholder="اسم الناحية" required/>
                     </div>
+                    <div class="col-md-4">
+                        <label class="form-label">رقم الناخب</label>
+                        <input type="text" name="VoterNumber" class="form-control" value="@Model.VoterNumber" maxlength="50" placeholder="رقم الناخب (اختياري)"/>
+                    </div>
+                    <div class="col-12 mt-2">
+                        <strong style="color:var(--primary)"><i class="fas fa-landmark me-1"></i> المركز الانتخابي</strong>
+                    </div>
+                    @* تبديل: مركز معروف / غير معروف *@
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="noEcCheck" />
+                            <label class="form-check-label" for="noEcCheck">
+                                لا أجد مركزي في القائمة — أدخل البيانات يدوياً
+                            </label>
+                        </div>
+                    </div>
+                    @* ── قسم الاختيار من القائمة ── *@
+                    <div id="ecFromList">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">الجانب</label>
+                                <select id="jEcSide" name="ElectionSide" class="form-select">
+                                    <option value="">— الكل —</option>
+                                    @if (Model.ElectionSide=="الكرخ") { <option value="الكرخ" selected="selected">الكرخ</option> } else { <option value="الكرخ">الكرخ</option> }
+                                    @if (Model.ElectionSide=="الرصافة") { <option value="الرصافة" selected="selected">الرصافة</option> } else { <option value="الرصافة">الرصافة</option> }
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">رقم المركز</label>
+                                <input type="text" id="jEcCode" name="ElectionCenterCode" list="jEcCodeList"
+                                       class="form-control" value="@Model.ElectionCenterCode" maxlength="50" autocomplete="off"/>
+                                <datalist id="jEcCodeList"></datalist>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">اسم المركز الانتخابي</label>
+                                <input type="text" id="jEcName" name="SchoolName" list="jEcNameList"
+                                       class="form-control" value="@Model.SchoolName" maxlength="200" autocomplete="off"/>
+                                <datalist id="jEcNameList"></datalist>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">عنوان المركز <small class="text-muted">(يتعبأ تلقائياً)</small></label>
+                                <input type="text" id="jEcAddress" name="SchoolAddress"
+                                       class="form-control bg-light" value="@Model.SchoolAddress"
+                                       maxlength="500" readonly />
+                            </div>
+                        </div>
+                    </div>
+                    @* ── قسم الإدخال اليدوي ── *@
+                    <div id="ecManual" style="display:none">
+                        <input type="hidden" name="ElectionSide" id="jEcSideManual" value="@Model.ElectionSide" />
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">الجانب</label>
+                                <select id="jEcSideM" class="form-select"
+                                        onchange="document.getElementById('jEcSideManual').value=this.value">
+                                    <option value="">— اختر —</option>
+                                    <option value="الكرخ">الكرخ</option>
+                                    <option value="الرصافة">الرصافة</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">رقم المركز</label>
+                                <input type="text" id="jEcCodeM" class="form-control" maxlength="50"
+                                       placeholder="رقم المركز الانتخابي"/>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">اسم المركز الانتخابي</label>
+                                <input type="text" id="jEcNameM" class="form-control" maxlength="200"
+                                       placeholder="اسم المركز الانتخابي"/>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">عنوان المركز</label>
+                                <input type="text" id="jEcAddressM" class="form-control" maxlength="500"
+                                       placeholder="عنوان المركز الانتخابي"/>
+                            </div>
+                            <div class="col-12">
+                                <div class="alert alert-info py-2 mb-0">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    سيتم حفظ البيانات المدخلة وسيتولى المسؤول إضافة مركزك إلى القائمة لاحقاً.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="col-12">
                         <label class="form-label">العنوان التفصيلي <span class="text-danger">*</span></label>
                         <textarea name="Address" class="form-control" rows="2" maxlength="500" required
                                   placeholder="الحي / الشارع / رقم الدار...">@Model.Address</textarea>
                     </div>
                 </div>
+                <script>
+                (function(){
+                    var ALL=@Html.Raw(jEcJson);
+                    var sideEl=document.getElementById('jEcSide');
+                    var codeEl=document.getElementById('jEcCode');
+                    var nameEl=document.getElementById('jEcName');
+                    var addrEl=document.getElementById('jEcAddress');
+                    var noEcChk=document.getElementById('noEcCheck');
+                    var fromDiv=document.getElementById('ecFromList');
+                    var manDiv=document.getElementById('ecManual');
+                    // الحقول اليدوية
+                    var codeM=document.getElementById('jEcCodeM');
+                    var nameM=document.getElementById('jEcNameM');
+                    var addrM=document.getElementById('jEcAddressM');
+                    function filtered(){var s=sideEl.value;return s?ALL.filter(function(c){return c.side===s;}):ALL;}
+                    function rebuildLists(){
+                        var list=filtered();
+                        document.getElementById('jEcCodeList').innerHTML=list.map(function(c){return '<option value="'+c.code+'">'+(c.name?c.code+' — '+c.name:'')+'</option>';}).join('');
+                        document.getElementById('jEcNameList').innerHTML=list.map(function(c){return '<option value="'+c.name+'">'+c.name+'</option>';}).join('');
+                    }
+                    sideEl.addEventListener('change',function(){rebuildLists();});
+                    codeEl.addEventListener('change',function(){var c=ALL.find(function(x){return x.code===codeEl.value;});if(c){nameEl.value=c.name;addrEl.value=c.address;sideEl.value=c.side;}});
+                    nameEl.addEventListener('change',function(){var c=ALL.find(function(x){return x.name===nameEl.value;});if(c){codeEl.value=c.code;addrEl.value=c.address;sideEl.value=c.side;}});
+                    // تبديل اليدوي/القائمة
+                    noEcChk.addEventListener('change',function(){
+                        var manual=noEcChk.checked;
+                        fromDiv.style.display=manual?'none':'';
+                        manDiv.style.display=manual?'':'none';
+                        // عند التبديل لليدوي: انقل القيم ثم اجعل hidden يحمل البيانات
+                        if(manual){
+                            // disable list fields so they don't submit
+                            codeEl.name=''; nameEl.name=''; addrEl.name=''; sideEl.name='';
+                            // enable manual fields
+                            codeM.name='ElectionCenterCode'; nameM.name='SchoolName'; addrM.name='SchoolAddress';
+                        } else {
+                            codeEl.name='ElectionCenterCode'; nameEl.name='SchoolName'; addrEl.name='SchoolAddress'; sideEl.name='ElectionSide';
+                            codeM.name=''; nameM.name=''; addrM.name='';
+                        }
+                    });
+                    rebuildLists();
+                })();
+                </script>
                 <div class="step-nav">
                     <button type="button" class="btn btn-outline-secondary" onclick="goTab(0)">
                         <i class="fas fa-arrow-right ms-1"></i> السابق
